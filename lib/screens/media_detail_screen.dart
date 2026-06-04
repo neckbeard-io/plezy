@@ -3357,6 +3357,7 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
         formatFullDate(lineMetadata.originallyAvailableAt!)
       else if (lineMetadata.year != null)
         lineMetadata.year.toString(),
+      if (lineMetadata.genres != null && lineMetadata.genres!.isNotEmpty) lineMetadata.genres!.join(', '),
     ];
 
     return Text(
@@ -3750,6 +3751,7 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
           if (metadata.contentRating != null) _buildMetadataChip(formatContentRating(metadata.contentRating!)),
           if (metadata.durationMs != null) _buildMetadataChip(formatDurationTextual(metadata.durationMs!)),
           ..._buildRatingChips(metadata),
+          if (metadata.genres != null && metadata.genres!.isNotEmpty) _buildMetadataChip(metadata.genres!.join(', ')),
         ];
 
         final showActions = availableHeight >= actionHeight;
