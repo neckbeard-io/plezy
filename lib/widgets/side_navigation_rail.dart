@@ -13,6 +13,7 @@ import '../media/media_library.dart';
 import '../mixins/mounted_set_state_mixin.dart';
 import '../navigation/navigation_tabs.dart';
 import '../providers/hidden_libraries_provider.dart';
+import '../providers/hidden_servers_provider.dart';
 import '../providers/libraries_provider.dart';
 import '../services/settings_service.dart';
 import '../utils/platform_detector.dart';
@@ -365,6 +366,7 @@ class SideNavigationRailState extends State<SideNavigationRail> with MountedSetS
     required List<_LibraryNavRow> hiddenRows,
     required bool hasHiddenLibraries,
     required bool hasLiveTv,
+    required Set<String> hiddenLibraryServerIds,
   }) {
     return {
       _kHome,
@@ -373,11 +375,23 @@ class SideNavigationRailState extends State<SideNavigationRail> with MountedSetS
       if (_showDownloads) _kDownloads,
       _kSettings,
       _kReconnect,
-      if (hasHiddenLibraries) _kHiddenLibraries,
+      if (hasHiddenLibraries && hiddenLibraryServerIds.isEmpty) _kHiddenLibraries,
+      for (final sid in hiddenLibraryServerIds) '${_kHiddenLibraries}_$sid',
       if (_showFullscreenToggle) _kFullscreen,
       if (hasLiveTv) 'liveTv',
       ..._focusKeysForLibraryRows(visibleRows),
       if (_hiddenLibrariesExpanded) ..._focusKeysForLibraryRows(hiddenRows),
+      // Server headers from hidden rows are always rendered as collapsible
+      // group headers when grouping is active — include their focus keys so
+      // they survive pruning.
+      for (final row in hiddenRows)
+        if (row is _LibraryServerHeaderRow && hiddenLibraryServerIds.contains(row.serverId))
+          _focusKeyForLibraryRow(row),
+      for (final sid in hiddenLibraryServerIds)
+        if (_hiddenLibrariesExpandedFor(sid))
+          ..._focusKeysForLibraryRows(
+            hiddenRows.where((r) => r is _LibraryItemRow && r.library.serverId == sid).toList(),
+          ),
     };
   }
 
@@ -441,6 +455,7 @@ class SideNavigationRailState extends State<SideNavigationRail> with MountedSetS
     List<_LibraryNavRow> hiddenRows, {
     required bool hasHiddenLibraries,
     required bool hasLiveTv,
+    required Set<String> hiddenLibraryServerIds,
   }) {
     return [
       if (widget.isOfflineMode && widget.onReconnect != null) _kReconnect,
@@ -448,11 +463,17 @@ class SideNavigationRailState extends State<SideNavigationRail> with MountedSetS
         _kHome,
         _kLibraries,
         if (_librariesExpanded) ...[
-          ..._focusKeysForLibraryRows(visibleRows),
-          if (hasHiddenLibraries) ...[
-            _kHiddenLibraries,
-            if (_hiddenLibrariesExpanded) ..._focusKeysForLibraryRows(hiddenRows),
-          ],
+          if (hiddenLibraryServerIds.isEmpty) ...[
+            // Non-grouped: visible rows, then hidden header, then hidden rows.
+            ..._focusKeysForLibraryRows(visibleRows),
+            if (hasHiddenLibraries) ...[
+              _kHiddenLibraries,
+              if (_hiddenLibrariesExpanded) ..._focusKeysForLibraryRows(hiddenRows),
+            ],
+          ] else
+            // Grouped: interleave hidden library headers per-server so focus
+            // order matches the visual layout built by _buildUnifiedLibraryList.
+            ..._buildGroupedLibraryFocusOrder(visibleRows, hiddenRows, hiddenLibraryServerIds),
         ],
         if (hasLiveTv) 'liveTv',
         _kSearch,
@@ -461,6 +482,63 @@ class SideNavigationRailState extends State<SideNavigationRail> with MountedSetS
       _kSettings,
       if (_showFullscreenToggle) _kFullscreen,
     ];
+  }
+
+  /// Build per-server interleaved focus keys that mirror the visual order of
+  /// [_buildUnifiedLibraryList] when server grouping is active.
+  List<String> _buildGroupedLibraryFocusOrder(
+    List<_LibraryNavRow> visibleRows,
+    List<_LibraryNavRow> hiddenRows,
+    Set<String> hiddenLibraryServerIds,
+  ) {
+    // Collect ordered server IDs the same way _buildUnifiedLibraryList does.
+    final serverIds = <String>{};
+    for (final row in visibleRows) {
+      if (row is _LibraryServerHeaderRow) {
+        serverIds.add(row.serverId);
+      } else if (row is _LibraryItemRow && row.library.serverId != null) {
+        serverIds.add(row.library.serverId!);
+      }
+    }
+    for (final row in hiddenRows) {
+      if (row is _LibraryServerHeaderRow) {
+        serverIds.add(row.serverId);
+      } else if (row is _LibraryItemRow && row.library.serverId != null) {
+        serverIds.add(row.library.serverId!);
+      }
+    }
+
+    final order = <String>[];
+    for (final serverId in serverIds) {
+      // Visible rows for this server (header + non-collapsed libraries).
+      final serverVisible = visibleRows.where((r) {
+        if (r is _LibraryServerHeaderRow) return r.serverId == serverId;
+        if (r is _LibraryItemRow) return r.library.serverId == serverId;
+        return false;
+      }).toList();
+
+      if (serverVisible.isNotEmpty) {
+        order.addAll(_focusKeysForLibraryRows(serverVisible));
+      } else if (hiddenLibraryServerIds.contains(serverId)) {
+        // Server has only hidden libraries — the widget tree still shows the
+        // server header (from hiddenRows) so include its focus key.
+        final headerRow = hiddenRows.whereType<_LibraryServerHeaderRow>().where((r) => r.serverId == serverId);
+        order.addAll(headerRow.map(_focusKeyForLibraryRow));
+      }
+
+      // Hidden-library header + expanded items for this server.
+      if (hiddenLibraryServerIds.contains(serverId)) {
+        order.add('${_kHiddenLibraries}_$serverId');
+        if (_hiddenLibrariesExpandedFor(serverId)) {
+          order.addAll(
+            _focusKeysForLibraryRows(
+              hiddenRows.where((r) => r is _LibraryItemRow && r.library.serverId == serverId).toList(),
+            ),
+          );
+        }
+      }
+    }
+    return order;
   }
 
   void _debugAssertUniqueFocusOrder(List<String> focusOrder) {
@@ -558,13 +636,17 @@ class SideNavigationRailState extends State<SideNavigationRail> with MountedSetS
     final t = tokens(context);
     final librariesProvider = context.watch<LibrariesProvider>();
     final hiddenLibrariesProvider = context.watch<HiddenLibrariesProvider>();
+    final hiddenServersProvider = context.watch<HiddenServersProvider>();
     final hiddenKeys = hiddenLibrariesProvider.hiddenLibraryKeys;
+    final hiddenServerIds = hiddenServersProvider.hiddenServerIds;
 
     final allLibraries = librariesProvider.libraries;
     final visibleLibraries = <MediaLibrary>[];
     final hiddenLibraries = <MediaLibrary>[];
     final serverIds = <String>{};
     for (final lib in allLibraries) {
+      // Skip libraries from hidden servers entirely.
+      if (lib.serverId != null && hiddenServerIds.contains(lib.serverId)) continue;
       if (lib.serverId != null) serverIds.add(lib.serverId!);
       if (hiddenKeys.contains(lib.globalKey)) {
         hiddenLibraries.add(lib);
@@ -604,12 +686,21 @@ class SideNavigationRailState extends State<SideNavigationRail> with MountedSetS
           section: _LibraryNavSection.hidden,
           showServerHeaders: showServerHeaders,
         );
+        // Collect server IDs that have hidden libraries (used for per-server
+        // hidden-library headers when server grouping is active).
+        final hiddenLibraryServerIds = showServerHeaders
+            ? <String>{
+                for (final lib in hiddenLibraries)
+                  if (lib.serverId != null) lib.serverId!,
+              }
+            : <String>{};
         _focusTracker.pruneExcept(
           _buildValidFocusKeys(
             visibleRows: visibleRows,
             hiddenRows: hiddenRows,
             hasHiddenLibraries: hiddenLibraries.isNotEmpty,
             hasLiveTv: hasLiveTv,
+            hiddenLibraryServerIds: hiddenLibraryServerIds,
           ),
         );
         final focusOrder = _buildFocusOrder(
@@ -617,6 +708,7 @@ class SideNavigationRailState extends State<SideNavigationRail> with MountedSetS
           hiddenRows,
           hasHiddenLibraries: hiddenLibraries.isNotEmpty,
           hasLiveTv: hasLiveTv,
+          hiddenLibraryServerIds: hiddenLibraryServerIds,
         );
         _debugAssertUniqueFocusOrder(focusOrder);
         return TapRegion(
@@ -877,7 +969,6 @@ class SideNavigationRailState extends State<SideNavigationRail> with MountedSetS
               });
               return KeyEventResult.handled;
             }
-            // RIGHT arrow navigates to content area
             if (event.logicalKey == LogicalKeyboardKey.arrowRight && widget.onNavigateToContent != null) {
               widget.onNavigateToContent!();
               return KeyEventResult.handled;
@@ -993,18 +1084,115 @@ class SideNavigationRailState extends State<SideNavigationRail> with MountedSetS
                       style: TextStyle(fontSize: 12, color: t.textMuted),
                     ),
                   )
-                else ...[
-                  if (visibleRows.isNotEmpty) _buildLibraryGroupedColumn(visibleRows, t),
-                  if (hiddenLibraryCount > 0) ...[
-                    _buildHiddenLibrariesHeader(hiddenLibraryCount, t),
-                    if (_hiddenLibrariesExpanded) _buildLibraryGroupedColumn(hiddenRows, t),
-                  ],
-                ],
+                else
+                  _buildUnifiedLibraryList(visibleRows, hiddenRows, t),
               ],
             ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildUnifiedLibraryList(List<_LibraryNavRow> visibleRows, List<_LibraryNavRow> hiddenRows, dynamic t) {
+    final hasHeaders =
+        visibleRows.any((r) => r is _LibraryServerHeaderRow) || hiddenRows.any((r) => r is _LibraryServerHeaderRow);
+
+    if (!hasHeaders) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (visibleRows.isNotEmpty) _buildLibraryGroupedColumn(visibleRows, t),
+          if (hiddenRows.isNotEmpty) ...[
+            _buildHiddenLibrariesHeader(hiddenRows.length, t, null),
+            if (_hiddenLibrariesExpandedFor(null)) _buildLibraryGroupedColumn(hiddenRows, t),
+          ],
+        ],
+      );
+    }
+
+    final serverIds = <String>{};
+    for (final row in visibleRows) {
+      if (row is _LibraryServerHeaderRow)
+        serverIds.add(row.serverId);
+      else if (row is _LibraryItemRow && row.library.serverId != null)
+        serverIds.add(row.library.serverId!);
+    }
+    for (final row in hiddenRows) {
+      if (row is _LibraryServerHeaderRow)
+        serverIds.add(row.serverId);
+      else if (row is _LibraryItemRow && row.library.serverId != null)
+        serverIds.add(row.library.serverId!);
+    }
+
+    final children = <Widget>[];
+    for (final serverId in serverIds) {
+      final serverVisible = visibleRows.where((r) {
+        if (r is _LibraryServerHeaderRow) return r.serverId == serverId;
+        if (r is _LibraryItemRow) return r.library.serverId == serverId;
+        return false;
+      }).toList();
+
+      final serverHidden = hiddenRows.where((r) {
+        if (r is _LibraryItemRow) return r.library.serverId == serverId;
+        return false;
+      }).toList();
+
+      if (serverVisible.isNotEmpty) {
+        children.add(_buildLibraryGroupedColumn(serverVisible, t));
+      } else if (serverHidden.isNotEmpty) {
+        final headerRow = hiddenRows.firstWhere(
+          (r) => r is _LibraryServerHeaderRow && r.serverId == serverId,
+          orElse: () =>
+              _LibraryServerHeaderRow(section: _LibraryNavSection.hidden, serverId: serverId, serverName: 'Server'),
+        );
+        children.add(_buildLibraryGroupedColumn([headerRow], t));
+      }
+
+      if (serverHidden.isNotEmpty) {
+        children.add(_buildHiddenLibrariesHeader(serverHidden.length, t, serverId));
+        if (_hiddenLibrariesExpandedFor(serverId)) {
+          children.add(_buildLibraryGroupedColumn(serverHidden, t));
+        }
+      }
+    }
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: children);
+  }
+
+  final Set<String> _expandedHiddenServerIds = {};
+
+  bool _hiddenLibrariesExpandedFor(String? serverId) {
+    if (serverId == null) return _hiddenLibrariesExpanded;
+    return _expandedHiddenServerIds.contains(serverId);
+  }
+
+  void _toggleHiddenLibrariesFor(String? serverId) {
+    setState(() {
+      if (serverId == null) {
+        _hiddenLibrariesExpanded = !_hiddenLibrariesExpanded;
+      } else {
+        if (_expandedHiddenServerIds.contains(serverId)) {
+          _expandedHiddenServerIds.remove(serverId);
+        } else {
+          _expandedHiddenServerIds.add(serverId);
+        }
+      }
+    });
+  }
+
+  Widget _buildHiddenLibrariesHeader(int count, dynamic t, String? serverId) {
+    final focusKey = serverId == null ? _kHiddenLibraries : '${_kHiddenLibraries}_$serverId';
+    return _buildCollapsibleHeader(
+      focusKey: focusKey,
+      icon: Symbols.visibility_off_rounded,
+      iconSize: 16,
+      label: Translations.of(context).libraries.hiddenLibrariesCount(count: count),
+      labelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: t.textMuted),
+      verticalPadding: 8,
+      isExpanded: _hiddenLibrariesExpandedFor(serverId),
+      onToggle: () => _toggleHiddenLibrariesFor(serverId),
+      t: t,
     );
   }
 
@@ -1065,20 +1253,6 @@ class SideNavigationRailState extends State<SideNavigationRail> with MountedSetS
         _collapsedServerGroupKeys.remove(groupKey);
       }
     });
-  }
-
-  Widget _buildHiddenLibrariesHeader(int count, dynamic t) {
-    return _buildCollapsibleHeader(
-      focusKey: _kHiddenLibraries,
-      icon: Symbols.visibility_off_rounded,
-      iconSize: 16,
-      label: Translations.of(context).libraries.hiddenLibrariesCount(count: count),
-      labelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: t.textMuted),
-      verticalPadding: 8,
-      isExpanded: _hiddenLibrariesExpanded,
-      onToggle: () => setState(() => _hiddenLibrariesExpanded = !_hiddenLibrariesExpanded),
-      t: t,
-    );
   }
 
   Widget _buildCollapsibleHeader({

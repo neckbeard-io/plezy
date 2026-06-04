@@ -314,6 +314,7 @@ class SettingsService extends BaseSharedPreferencesService {
   static const downloadOnWifiOnly = BoolPref('download_on_wifi_only');
   static const autoRemoveWatchedDownloads = BoolPref('auto_remove_watched_downloads');
   static const autoCheckUpdatesOnStartup = BoolPref('auto_check_updates_on_startup', defaultValue: true);
+  static const showSharedServers = BoolPref('show_shared_servers', defaultValue: true);
   static const showPerformanceOverlay = BoolPref('show_performance_overlay');
   static const autoHidePerformanceOverlay = BoolPref('auto_hide_performance_overlay', defaultValue: true);
   static const enableDiscordRPC = BoolPref('enable_discord_rpc');
@@ -696,6 +697,7 @@ class SettingsService extends BaseSharedPreferencesService {
     customDownloadPathType,
     downloadOnWifiOnly,
     autoCheckUpdatesOnStartup,
+    showSharedServers,
     showPerformanceOverlay,
     autoHidePerformanceOverlay,
     enableDiscordRPC,

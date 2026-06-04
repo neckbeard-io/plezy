@@ -45,6 +45,7 @@ import 'providers/user_profile_provider.dart';
 import 'providers/multi_server_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/hidden_libraries_provider.dart';
+import 'providers/hidden_servers_provider.dart';
 import 'providers/libraries_provider.dart';
 import 'providers/playback_state_provider.dart';
 import 'providers/download_provider.dart';
@@ -705,10 +706,15 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
             return provider;
           },
         ),
-        ChangeNotifierProvider(
+        ChangeNotifierProvider(create: (context) => HiddenServersProvider(), lazy: false),
+        ChangeNotifierProxyProvider<HiddenServersProvider, MultiServerProvider>(
           create: (context) {
             _serverManager.onJellyfinConnectionUpdated = context.read<ConnectionRegistry>().upsert;
             return MultiServerProvider(_serverManager, _aggregationService);
+          },
+          update: (_, hiddenServers, multiServer) {
+            multiServer!.setHiddenServerIds(hiddenServers.hiddenServerIds);
+            return multiServer;
           },
         ),
         ChangeNotifierProxyProvider<MultiServerProvider, OfflineModeProvider>(
