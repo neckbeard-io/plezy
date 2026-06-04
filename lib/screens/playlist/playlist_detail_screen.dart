@@ -20,6 +20,7 @@ import 'package:provider/provider.dart';
 import 'playlist_item_card.dart';
 import '../../i18n/strings.g.dart';
 import '../../providers/download_provider.dart';
+import '../../providers/watch_state_overlay_provider.dart';
 import '../../utils/platform_detector.dart';
 import '../../utils/dialogs.dart';
 import '../../utils/download_utils.dart';
@@ -69,6 +70,58 @@ class _PlaylistDetailScreenState extends BaseMediaListDetailScreen<PlaylistDetai
   /// filter rules, not direct edits). Jellyfin has no equivalent concept.
   bool get _isReadOnly => widget.playlist.smart;
 
+  /// Find the first unwatched or partially-watched item in the playlist,
+  /// applying any session-local watch-state patches.
+  MediaItem? _findResumeItem() {
+    final overlay = context.read<WatchStateOverlayProvider>();
+    for (final item in items) {
+      final effective = overlay.apply(item);
+      // Partially watched → resume this one
+      if (effective.viewOffsetMs != null &&
+          effective.durationMs != null &&
+          effective.viewOffsetMs! > 0 &&
+          effective.viewOffsetMs! < effective.durationMs!) {
+        return effective;
+      }
+      // First unwatched → start here
+      if (!effective.isWatched) {
+        return effective;
+      }
+    }
+    // Everything is watched — return null (caller falls back to beginning)
+    return null;
+  }
+
+  @override
+  Future<void> playItems() async {
+    if (items.isEmpty) {
+      if (mounted) showAppSnackBar(context, emptyMessage);
+      return;
+    }
+    final resumeItem = _findResumeItem();
+    final launcher = MediaListPlaybackLauncher.forItem(context, widget.playlist);
+    await launcher.launchFromCollectionOrPlaylist(
+      item: widget.playlist,
+      shuffle: false,
+      startItem: resumeItem,
+      showLoadingIndicator: false,
+    );
+  }
+
+  /// Play the entire playlist from the very beginning, ignoring watched state.
+  Future<void> _playFromBeginning() async {
+    if (items.isEmpty) {
+      if (mounted) showAppSnackBar(context, emptyMessage);
+      return;
+    }
+    final launcher = MediaListPlaybackLauncher.forItem(context, widget.playlist);
+    await launcher.launchFromCollectionOrPlaylist(
+      item: widget.playlist,
+      shuffle: false,
+      showLoadingIndicator: false,
+    );
+  }
+
   @override
   List<FocusableAction> getAppBarActions() {
     final isVideoPlaylist = widget.playlist.playlistType == 'video';
@@ -80,6 +133,37 @@ class _PlaylistDetailScreenState extends BaseMediaListDetailScreen<PlaylistDetai
     return [
       if (items.isNotEmpty) ...[
         FocusableAction(icon: Symbols.play_arrow_rounded, tooltip: t.common.play, onPressed: playItems),
+        FocusableAction(
+          tooltip: t.common.play,
+          onPressed: _playFromBeginning,
+          child: IconButton(
+            onPressed: _playFromBeginning,
+            tooltip: t.common.play,
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const AppIcon(Symbols.play_arrow_rounded, fill: 1),
+                Positioned(
+                  right: -4,
+                  top: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      shape: BoxShape.circle,
+                    ),
+                    child: AppIcon(
+                      Symbols.check_rounded,
+                      fill: 1,
+                      size: 12,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
         FocusableAction(icon: Symbols.shuffle_rounded, tooltip: t.common.shuffle, onPressed: shufflePlayItems),
       ],
       if (!PlatformDetector.isAppleTV() && isVideoPlaylist && (items.isNotEmpty || hasRule))
