@@ -14,6 +14,7 @@ class StorageService extends BaseSharedPreferencesService {
   static const String _keyLibraryOrder = 'library_order';
   static const String _keyCurrentUserUUID = 'current_user_uuid';
   static const String _keyHiddenLibraries = 'hidden_libraries';
+  static const String _keyHiddenServers = 'hidden_servers';
   static const String _keyServersList = 'servers_list';
   static const String _keyServerOrder = 'server_order';
   static const String _keyActiveProfileId = 'active_app_profile_id';
@@ -29,7 +30,12 @@ class StorageService extends BaseSharedPreferencesService {
   // Key groups for bulk clearing
   static const List<String> _credentialKeys = [_keyPlexToken, _keyClientId, _keyCurrentUserUUID];
 
-  static const List<String> _libraryPreferenceKeys = [_keyLibraryFilters, _keyLibraryOrder, _keyHiddenLibraries];
+  static const List<String> _libraryPreferenceKeys = [
+    _keyLibraryFilters,
+    _keyLibraryOrder,
+    _keyHiddenLibraries,
+    _keyHiddenServers,
+  ];
 
   StorageService._();
 
@@ -221,6 +227,23 @@ class StorageService extends BaseSharedPreferencesService {
 
   Set<String> getHiddenLibraries() {
     final jsonString = _getScopedString(_keyHiddenLibraries);
+    if (jsonString == null) return {};
+
+    try {
+      final list = json.decode(jsonString) as List<dynamic>;
+      return list.map((e) => e.toString()).toSet();
+    } catch (e) {
+      return {};
+    }
+  }
+
+  // Hidden Servers (stored as JSON array of server IDs)
+  Future<void> saveHiddenServers(Set<String> serverIds) async {
+    await _setStringList('$_userPrefix$_keyHiddenServers', serverIds.toList());
+  }
+
+  Set<String> getHiddenServers() {
+    final jsonString = _getScopedString(_keyHiddenServers);
     if (jsonString == null) return {};
 
     try {

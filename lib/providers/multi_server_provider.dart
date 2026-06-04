@@ -149,6 +149,24 @@ class MultiServerProvider extends ChangeNotifier with DisposableChangeNotifierMi
   /// Get the data aggregation service
   DataAggregationService get aggregationService => _aggregationService;
 
+  /// Server ids the user has explicitly hidden via per-server settings.
+  Set<String> _hiddenServerIds = {};
+
+  /// Replace the set of hidden server ids and notify listeners. Idempotent.
+  void setHiddenServerIds(Set<String> ids) {
+    if (_hiddenServerIds.length == ids.length && _hiddenServerIds.containsAll(ids)) return;
+    _hiddenServerIds = ids;
+    _pruneLiveTvServersForVisibility();
+    safeNotifyListeners();
+    _refreshLiveTvAvailabilitySoon();
+  }
+
+  bool _isServerFiltered(String id) {
+    if (_visibleServerIds != null && !_visibleServerIds!.contains(id)) return true;
+    if (_hiddenServerIds.contains(id)) return true;
+    return false;
+  }
+
   /// Get client for specific server.
   MediaServerClient? getClientForServer(String serverId) {
     return _serverManager.getClient(serverId);
@@ -163,32 +181,25 @@ class MultiServerProvider extends ChangeNotifier with DisposableChangeNotifierMi
 
   /// Get all online server IDs (visibility-filtered).
   List<String> get onlineServerIds {
-    final all = _serverManager.onlineServerIds;
-    final filter = _visibleServerIds;
-    if (filter == null) return all;
-    return all.where(filter.contains).toList();
+    return _serverManager.onlineServerIds.where((id) => !_isServerFiltered(id)).toList();
   }
 
   /// Get all server IDs (visibility-filtered).
   List<String> get serverIds {
-    final all = _serverManager.serverIds;
-    final filter = _visibleServerIds;
-    if (filter == null) return all;
-    return all.where(filter.contains).toList();
+    return _serverManager.serverIds.where((id) => !_isServerFiltered(id)).toList();
   }
 
   /// Server ids the active profile is expected to have, including unreachable
   /// Plex servers that have no live client yet.
   List<String> get expectedServerIds {
     final expected = _expectedVisibleServerIds;
-    if (expected != null) return expected.toList(growable: false);
+    if (expected != null) return expected.where((id) => !_isServerFiltered(id)).toList(growable: false);
     return serverIds;
   }
 
   /// Check if a server is online (and visible under the active profile).
   bool isServerOnline(String serverId) {
-    final filter = _visibleServerIds;
-    if (filter != null && !filter.contains(serverId)) return false;
+    if (_isServerFiltered(serverId)) return false;
     return _serverManager.isServerOnline(serverId);
   }
 
@@ -212,8 +223,8 @@ class MultiServerProvider extends ChangeNotifier with DisposableChangeNotifierMi
   List<String> get authErrorServerIds {
     final all = _serverManager.authErrorServerIds;
     final filter = _expectedVisibleServerIds ?? _visibleServerIds;
-    if (filter == null) return all.toList();
-    return all.where(filter.contains).toList();
+    if (filter == null) return all.where((id) => !_isServerFiltered(id)).toList();
+    return all.where(filter.contains).where((id) => !_isServerFiltered(id)).toList();
   }
 
   /// Whether any visible server currently has an auth error.

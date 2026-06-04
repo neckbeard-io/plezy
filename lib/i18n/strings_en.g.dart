@@ -937,6 +937,24 @@ class TranslationsSettingsEn {
 
 	/// en: 'Behavior'
 	String get behavior => 'Behavior';
+
+	/// en: 'Owned'
+	String get owned => 'Owned';
+
+	/// en: 'Shared'
+	String get shared => 'Shared';
+
+	/// en: 'Owned · Hidden'
+	String get ownedHidden => 'Owned · Hidden';
+
+	/// en: 'Shared · Hidden'
+	String get sharedHidden => 'Shared · Hidden';
+
+	/// en: 'Show Server'
+	String get showServer => 'Show Server';
+
+	/// en: 'Include this server in your libraries and home screen'
+	String get showServerDescription => 'Include this server in your libraries and home screen';
 }
 
 // Path: search
@@ -4432,6 +4450,12 @@ extension on Translations {
 			'settings.subtitlesAndConfig' => 'Subtitles & Configuration',
 			'settings.seekAndTiming' => 'Seek & Timing',
 			'settings.behavior' => 'Behavior',
+			'settings.owned' => 'Owned',
+			'settings.shared' => 'Shared',
+			'settings.ownedHidden' => 'Owned · Hidden',
+			'settings.sharedHidden' => 'Shared · Hidden',
+			'settings.showServer' => 'Show Server',
+			'settings.showServerDescription' => 'Include this server in your libraries and home screen',
 			'search.hint' => 'Search movies, shows, music...',
 			'search.tryDifferentTerm' => 'Try a different search term',
 			'search.searchYourMedia' => 'Search your media',
@@ -4672,14 +4696,14 @@ extension on Translations {
 			'profiles.addPlezyProfile' => 'Add Plezy profile',
 			'profiles.switchingProfile' => 'Switching profile…',
 			'profiles.deleteThisProfileTitle' => 'Delete this profile?',
+			_ => null,
+		} ?? switch (path) {
 			'profiles.deleteThisProfileMessage' => ({required Object displayName}) => 'Remove ${displayName}. Connections aren\'t affected.',
 			'profiles.active' => 'Active',
 			'profiles.manage' => 'Manage',
 			'profiles.delete' => 'Delete',
 			'profiles.signOut' => 'Sign out',
 			'profiles.signOutPlexTitle' => 'Sign out of Plex?',
-			_ => null,
-		} ?? switch (path) {
 			'profiles.signOutPlexMessage' => ({required Object displayName}) => 'Remove ${displayName} and all Plex Home users? Sign back in anytime.',
 			'profiles.signedOutPlex' => 'Signed out of Plex.',
 			'profiles.signOutFailed' => 'Sign out failed.',
@@ -5186,14 +5210,14 @@ extension on Translations {
 			'metadataEdit.artwork' => 'Artwork',
 			'metadataEdit.advancedSettings' => 'Advanced Settings',
 			'metadataEdit.title' => 'Title',
+			_ => null,
+		} ?? switch (path) {
 			'metadataEdit.sortTitle' => 'Sort Title',
 			'metadataEdit.originalTitle' => 'Original Title',
 			'metadataEdit.releaseDate' => 'Release Date',
 			'metadataEdit.contentRating' => 'Content Rating',
 			'metadataEdit.studio' => 'Studio',
 			'metadataEdit.tagline' => 'Tagline',
-			_ => null,
-		} ?? switch (path) {
 			'metadataEdit.summary' => 'Summary',
 			'metadataEdit.poster' => 'Poster',
 			'metadataEdit.background' => 'Background',
