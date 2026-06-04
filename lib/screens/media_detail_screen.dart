@@ -3542,6 +3542,7 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
       else if (lineMetadata.year != null)
         lineMetadata.year.toString(),
       ...qualityLabels,
+      if (lineMetadata.genres != null && lineMetadata.genres!.isNotEmpty) lineMetadata.genres!.join(', '),
     ];
 
     return Text(
@@ -4020,6 +4021,7 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
           if (metadata.durationMs != null) _buildMetadataChip(formatDurationTextual(metadata.durationMs!)),
           for (final label in buildMediaQualityLabels(metadata)) _buildMetadataChip(label),
           ..._buildRatingChips(metadata),
+          if (metadata.genres != null && metadata.genres!.isNotEmpty) _buildMetadataChip(metadata.genres!.join(', ')),
         ];
 
         final showActions = availableHeight >= actionHeight;
