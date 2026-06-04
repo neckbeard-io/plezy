@@ -101,27 +101,22 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
               itemBuilder: (context, index) {
                 final lib = visibleLibraries[index];
 
-                return ListTile(
+                return Builder(
                   key: ValueKey(lib.globalKey),
-                  leading: ReorderableDragStartListener(
-                    index: index,
-                    child: MouseRegion(
-                      cursor: SystemMouseCursors.grab,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: const AppIcon(Symbols.drag_handle_rounded),
+                  builder: (tileContext) => ListTile(
+                    leading: ReorderableDragStartListener(
+                      index: index,
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.grab,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: const AppIcon(Symbols.drag_handle_rounded),
+                        ),
                       ),
                     ),
-                  ),
-                  title: Text(lib.title),
-                  trailing: PopupMenuButton<String>(
-                    icon: const AppIcon(Symbols.more_vert_rounded),
-                    onSelected: (value) {
-                      if (value == 'hide') {
-                        hiddenProvider.hideLibrary(lib.globalKey);
-                      }
-                    },
-                    itemBuilder: (context) => [const PopupMenuItem(value: 'hide', child: Text('Hide Library'))],
+                    title: Text(lib.title),
+                    trailing: const AppIcon(Symbols.more_vert_rounded),
+                    onTap: () => _showLibraryContextMenu(tileContext, lib, hiddenProvider),
                   ),
                 );
               },
@@ -148,12 +143,8 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
                         return ListTile(
                           key: ValueKey('hidden_${lib.globalKey}'),
                           title: Text(lib.title),
-                          trailing: TextButton(
-                            onPressed: () {
-                              hiddenProvider.unhideLibrary(lib.globalKey);
-                            },
-                            child: const Text('Show'),
-                          ),
+                          trailing: const Text('Show'),
+                          onTap: () => hiddenProvider.unhideLibrary(lib.globalKey),
                         );
                       }),
                   ],
@@ -163,6 +154,27 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
         );
       },
     );
+  }
+
+  void _showLibraryContextMenu(BuildContext context, MediaLibrary lib, HiddenLibrariesProvider hiddenProvider) {
+    final RenderBox renderBox = context.findRenderObject() as RenderBox;
+    final Offset offset = renderBox.localToGlobal(Offset.zero);
+    final Size size = renderBox.size;
+
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        offset.dx + size.width,
+        offset.dy,
+        offset.dx + size.width,
+        offset.dy + size.height,
+      ),
+      items: [const PopupMenuItem(value: 'hide', child: Text('Hide Library'))],
+    ).then((value) {
+      if (value == 'hide') {
+        hiddenProvider.hideLibrary(lib.globalKey);
+      }
+    });
   }
 
   Widget _buildServerToggle(BuildContext context, HiddenServersProvider hiddenServersProvider, bool isServerHidden) {
