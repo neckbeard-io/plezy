@@ -12,6 +12,7 @@ import '../../utils/provider_extensions.dart';
 import '../../i18n/strings.g.dart';
 import '../../widgets/media_context_menu.dart';
 import '../../widgets/media_progress_bar.dart';
+import '../../theme/mono_tokens.dart';
 import '../../widgets/optimized_media_image.dart';
 
 /// Custom list item widget for playlist items
@@ -133,8 +134,8 @@ class _PlaylistItemCardState extends State<PlaylistItemCard> with ContextMenuTap
                     ),
                   ),
 
-                // Poster thumbnail
-                _buildPosterImage(context, item),
+                // Poster thumbnail with watched indicator
+                _buildPosterWithWatchState(context, item),
 
                 const SizedBox(width: 12),
 
@@ -206,6 +207,51 @@ class _PlaylistItemCardState extends State<PlaylistItemCard> with ContextMenuTap
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPosterWithWatchState(BuildContext context, MediaItem item) {
+    final hasActiveProgress =
+        item.viewOffsetMs != null && item.durationMs != null && item.viewOffsetMs! > 0 && item.viewOffsetMs! < item.durationMs!;
+    final showWatched = item.isWatched && !hasActiveProgress;
+
+    return SizedBox(
+      width: 60,
+      height: 90,
+      child: Stack(
+        children: [
+          _buildPosterImage(context, item),
+          // Watched checkmark
+          if (showWatched)
+            Positioned(
+              top: 2,
+              right: 2,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: tokens(context).text,
+                  shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 4)],
+                ),
+                child: AppIcon(Symbols.check_rounded, fill: 1, color: tokens(context).bg, size: 12),
+              ),
+            ),
+          // Progress bar for partially watched
+          if (hasActiveProgress)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(6),
+                  bottomRight: Radius.circular(6),
+                ),
+                child: MediaProgressBar(viewOffset: item.viewOffsetMs!, duration: item.durationMs!),
+              ),
+            ),
+        ],
       ),
     );
   }
