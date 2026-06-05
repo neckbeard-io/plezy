@@ -17,6 +17,7 @@ import '../main_screen.dart';
 import '../../mixins/mounted_set_state_mixin.dart';
 import '../../mixins/refreshable.dart';
 import '../../providers/hidden_libraries_provider.dart';
+import '../../providers/hidden_servers_provider.dart';
 import '../../providers/libraries_provider.dart';
 import '../../services/donation_service.dart';
 import '../../services/download_storage_service.dart';
@@ -43,6 +44,7 @@ import '../../profiles/profile.dart';
 import '../../profiles/profile_registry.dart';
 import 'about_screen.dart';
 import 'add_connection_screen.dart';
+import 'media_servers_screen.dart';
 import 'appearance_settings_screen.dart';
 import 'keyboard_shortcuts_screen.dart';
 import 'logs_screen.dart';
@@ -262,6 +264,12 @@ class _SettingsScreenState extends State<SettingsScreen> with FocusableTab, Moun
         // and each profile's detail screen). The shortcut here just opens
         // the picker scoped to the active profile so users can add a Plex
         // account, Jellyfin server, or borrow from another profile.
+        SettingNavigationTile(
+          icon: Symbols.dns_rounded,
+          title: 'Media Servers',
+          subtitle: 'Manage connected servers and libraries',
+          destinationBuilder: (_) => const MediaServersScreen(),
+        ),
         SettingNavigationTile(
           icon: Symbols.add_link_rounded,
           title: t.connections.addConnection,
@@ -705,6 +713,7 @@ class _SettingsScreenState extends State<SettingsScreen> with FocusableTab, Moun
     // after the widget may have been unmounted.
     final themeProvider = context.read<ThemeProvider>();
     final hiddenLibrariesProvider = context.read<HiddenLibrariesProvider>();
+    final hiddenServersProvider = context.read<HiddenServersProvider>();
     final librariesProvider = context.read<LibrariesProvider>();
 
     try {
@@ -719,6 +728,7 @@ class _SettingsScreenState extends State<SettingsScreen> with FocusableTab, Moun
       await Future.wait([
         themeProvider.reload(),
         hiddenLibrariesProvider.refresh(),
+        hiddenServersProvider.refresh(),
         if (_keyboardService != null) _keyboardService!.refreshFromStorage(),
       ]);
       unawaited(librariesProvider.refresh());

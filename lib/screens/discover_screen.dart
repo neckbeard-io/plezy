@@ -23,6 +23,7 @@ import '../utils/content_utils.dart';
 import '../widgets/optimized_media_image.dart' show blurArtwork;
 import '../providers/multi_server_provider.dart';
 import '../providers/hidden_libraries_provider.dart';
+import '../providers/hidden_servers_provider.dart';
 import '../providers/libraries_provider.dart';
 import '../providers/playback_state_provider.dart';
 import '../widgets/hub_section.dart';
@@ -705,11 +706,14 @@ class _DiscoverScreenState extends State<DiscoverScreen>
         throw Exception('No servers available');
       }
 
-      // Get hidden libraries for filtering
+      // Get hidden libraries and servers for filtering
       final hiddenLibrariesProvider = Provider.of<HiddenLibrariesProvider>(context, listen: false);
+      final hiddenServersProvider = Provider.of<HiddenServersProvider>(context, listen: false);
       await hiddenLibrariesProvider.ensureInitialized();
+      await hiddenServersProvider.ensureInitialized();
       if (!mounted) return;
       _lastSeenHiddenKeys = Set.of(hiddenLibrariesProvider.hiddenLibraryKeys);
+      final hiddenServerIds = hiddenServersProvider.hiddenServerIds;
 
       // Let aggregation service fetch libraries internally; the LibrariesProvider
       // stores neutral MediaLibrary objects.
@@ -719,9 +723,11 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       final onDeckFuture = multiServerProvider.aggregationService.getOnDeckFromAllServers(
         limit: _continueWatchingProbeLimit,
         hiddenLibraryKeys: hiddenLibrariesProvider.hiddenLibraryKeys,
+        hiddenServerIds: hiddenServerIds,
       );
       final hubsFuture = multiServerProvider.aggregationService.getHubsFromAllServers(
         hiddenLibraryKeys: hiddenLibrariesProvider.hiddenLibraryKeys,
+        hiddenServerIds: hiddenServerIds,
         useGlobalHubs: useGlobalHubs,
         includePlaybackHubs: false,
       );
@@ -838,9 +844,11 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       }
 
       final hiddenLibrariesProvider = context.read<HiddenLibrariesProvider>();
+      final hiddenServersProvider = context.read<HiddenServersProvider>();
       final fetchedOnDeck = await multiServerProvider.aggregationService.getOnDeckFromAllServers(
         limit: _continueWatchingProbeLimit,
         hiddenLibraryKeys: hiddenLibrariesProvider.hiddenLibraryKeys,
+        hiddenServerIds: hiddenServersProvider.hiddenServerIds,
       );
       final hasMoreContinueWatching = fetchedOnDeck.length > _continueWatchingPreviewLimit;
       final onDeck = hasMoreContinueWatching
@@ -878,11 +886,14 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     if (!multiServerProvider.hasConnectedServers) return const [];
 
     final hiddenLibrariesProvider = context.read<HiddenLibrariesProvider>();
+    final hiddenServersProvider = context.read<HiddenServersProvider>();
     await hiddenLibrariesProvider.ensureInitialized();
+    await hiddenServersProvider.ensureInitialized();
     if (!mounted) return const [];
 
     return multiServerProvider.aggregationService.getOnDeckFromAllServers(
       hiddenLibraryKeys: hiddenLibrariesProvider.hiddenLibraryKeys,
+      hiddenServerIds: hiddenServersProvider.hiddenServerIds,
     );
   }
 
