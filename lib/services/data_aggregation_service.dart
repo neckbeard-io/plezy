@@ -57,21 +57,27 @@ class DataAggregationService {
   /// Fetch "On Deck" (Continue Watching) from all servers and merge by recency.
   /// Items are tagged with server info by the underlying client. Returns
   /// neutral [MediaItem]s.
-  Future<List<MediaItem>> getOnDeckFromAllServers({int? limit, Set<String>? hiddenLibraryKeys}) async {
+  Future<List<MediaItem>> getOnDeckFromAllServers({
+    int? limit,
+    Set<String>? hiddenLibraryKeys,
+    Set<String>? hiddenServerIds,
+  }) async {
     final clients = _serverManager.onlineClients;
     if (clients.isEmpty) {
       appLogger.w('No online servers available for fetching on deck');
       return [];
     }
-    final futures = clients.entries.map((entry) async {
-      final client = entry.value;
-      try {
-        return await client.fetchContinueWatching(count: limit);
-      } catch (e, st) {
-        appLogger.e('Failed on-deck fetch from ${entry.key}', error: e, stackTrace: st);
-        return <MediaItem>[];
-      }
-    });
+    final futures = clients.entries
+        .where((entry) => hiddenServerIds == null || !hiddenServerIds.contains(entry.key))
+        .map((entry) async {
+          final client = entry.value;
+          try {
+            return await client.fetchContinueWatching(count: limit);
+          } catch (e, st) {
+            appLogger.e('Failed on-deck fetch from ${entry.key}', error: e, stackTrace: st);
+            return <MediaItem>[];
+          }
+        });
     final allOnDeck = (await Future.wait(futures)).expand((l) => l).toList();
 
     // Filter out items from hidden libraries
@@ -243,6 +249,7 @@ class DataAggregationService {
   Future<List<MediaHub>> getHubsFromAllServers({
     int? limit,
     Set<String>? hiddenLibraryKeys,
+    Set<String>? hiddenServerIds,
     bool useGlobalHubs = true,
     bool includePlaybackHubs = true,
   }) async {
@@ -259,27 +266,29 @@ class DataAggregationService {
         ? _groupLibrariesByServer((await getMediaLibrariesFromAllServers()).libraries)
         : null;
 
-    final futures = clients.entries.map((entry) async {
-      final serverId = entry.key;
-      final client = entry.value;
-      try {
-        final serverLibraries = libraries?[serverId];
-        final shouldUseGlobalHubs = useGlobalHubs && client.capabilities.richHubs;
-        final hubs = shouldUseGlobalHubs
-            ? await client.fetchGlobalHubs(limit: limit ?? 10, includePlaybackHubs: includePlaybackHubs)
-            : await _fetchLibraryHubsForClient(
-                client,
-                limit: limit ?? 10,
-                hiddenLibraryKeys: hiddenLibraryKeys,
-                includePlaybackHubs: includePlaybackHubs,
-                libraries: useGlobalHubs ? serverLibraries : null,
-              );
-        return _postProcessHubs(hubs, serverId: ServerId(serverId), hiddenLibraryKeys: hiddenLibraryKeys);
-      } catch (e, stackTrace) {
-        appLogger.e('Failed to fetch hubs from server $serverId', error: e, stackTrace: stackTrace);
-        return <MediaHub>[];
-      }
-    });
+    final futures = clients.entries
+        .where((entry) => hiddenServerIds == null || !hiddenServerIds.contains(entry.key))
+        .map((entry) async {
+          final serverId = entry.key;
+          final client = entry.value;
+          try {
+            final serverLibraries = libraries?[serverId];
+            final shouldUseGlobalHubs = useGlobalHubs && client.capabilities.richHubs;
+            final hubs = shouldUseGlobalHubs
+                ? await client.fetchGlobalHubs(limit: limit ?? 10, includePlaybackHubs: includePlaybackHubs)
+                : await _fetchLibraryHubsForClient(
+                    client,
+                    limit: limit ?? 10,
+                    hiddenLibraryKeys: hiddenLibraryKeys,
+                    includePlaybackHubs: includePlaybackHubs,
+                    libraries: useGlobalHubs ? serverLibraries : null,
+                  );
+            return _postProcessHubs(hubs, serverId: ServerId(serverId), hiddenLibraryKeys: hiddenLibraryKeys);
+          } catch (e, stackTrace) {
+            appLogger.e('Failed to fetch hubs from server $serverId', error: e, stackTrace: stackTrace);
+            return <MediaHub>[];
+          }
+        });
 
     final results = await Future.wait(futures);
     final all = <MediaHub>[];

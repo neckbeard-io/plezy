@@ -18,6 +18,7 @@ import '../../media/media_item.dart';
 import '../../media/media_library.dart';
 import '../../media/media_server_client.dart';
 import '../../providers/hidden_libraries_provider.dart';
+import '../../providers/hidden_servers_provider.dart';
 import '../../providers/libraries_provider.dart';
 import '../../services/settings_service.dart';
 import '../../widgets/settings_builder.dart';
@@ -168,8 +169,13 @@ class _LibrariesScreenState extends State<LibrariesScreen>
   Future<void> _initializeWithLibraries() async {
     final librariesProvider = context.read<LibrariesProvider>();
     final hiddenLibrariesProvider = context.read<HiddenLibrariesProvider>();
+    final hiddenServersProvider = context.read<HiddenServersProvider>();
     await hiddenLibrariesProvider.ensureInitialized();
-    final allLibraries = librariesProvider.libraries;
+    await hiddenServersProvider.ensureInitialized();
+    final hiddenServerIds = hiddenServersProvider.hiddenServerIds;
+    final allLibraries = librariesProvider.libraries
+        .where((lib) => lib.serverId == null || !hiddenServerIds.contains(lib.serverId))
+        .toList();
 
     if (allLibraries.isEmpty) {
       // No libraries available yet
@@ -1009,7 +1015,11 @@ class _LibrariesScreenState extends State<LibrariesScreen>
   Widget _buildContent(BuildContext context, bool groupByServerSetting) {
     // Watch libraries provider for updates
     final librariesProvider = context.watch<LibrariesProvider>();
-    final allLibraries = librariesProvider.libraries;
+    final hiddenServersProvider = context.watch<HiddenServersProvider>();
+    final hiddenServerIds = hiddenServersProvider.hiddenServerIds;
+    final allLibraries = librariesProvider.libraries
+        .where((lib) => lib.serverId == null || !hiddenServerIds.contains(lib.serverId))
+        .toList();
     final isLoadingLibraries = librariesProvider.isLoading;
 
     // Watch for hidden libraries changes to trigger rebuild

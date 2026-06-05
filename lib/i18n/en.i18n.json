@@ -279,7 +279,15 @@
     "player": "Player",
     "subtitlesAndConfig": "Subtitles & Configuration",
     "seekAndTiming": "Seek & Timing",
-    "behavior": "Behavior"
+    "behavior": "Behavior",
+    "owned": "Owned",
+    "shared": "Shared",
+    "ownedHidden": "Owned · Hidden",
+    "sharedHidden": "Shared · Hidden",
+    "showServer": "Show Server",
+    "showServerDescription": "Include this server in your libraries and home screen",
+    "libraryInstructions": "Press to hide. Long press to reorder.",
+    "reorderInstructions": "Use up/down to move. Press OK to confirm."
   },
   "search": {
     "hint": "Search movies, shows, music...",
