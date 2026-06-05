@@ -281,7 +281,9 @@
     "ownedHidden": "Owned · Hidden",
     "sharedHidden": "Shared · Hidden",
     "showServer": "Show Server",
-    "showServerDescription": "Include this server in your libraries and home screen"
+    "showServerDescription": "Include this server in your libraries and home screen",
+    "libraryInstructions": "Press to hide. Long press to reorder.",
+    "reorderInstructions": "Use up/down to move. Press OK to confirm."
   },
   "search": {
     "hint": "Search movies, shows, music...",
