@@ -955,6 +955,12 @@ class TranslationsSettingsEn {
 
 	/// en: 'Include this server in your libraries and home screen'
 	String get showServerDescription => 'Include this server in your libraries and home screen';
+
+	/// en: 'Press to hide. Long press to reorder.'
+	String get libraryInstructions => 'Press to hide. Long press to reorder.';
+
+	/// en: 'Use up/down to move. Press OK to confirm.'
+	String get reorderInstructions => 'Use up/down to move. Press OK to confirm.';
 }
 
 // Path: search
@@ -4456,6 +4462,8 @@ extension on Translations {
 			'settings.sharedHidden' => 'Shared · Hidden',
 			'settings.showServer' => 'Show Server',
 			'settings.showServerDescription' => 'Include this server in your libraries and home screen',
+			'settings.libraryInstructions' => 'Press to hide. Long press to reorder.',
+			'settings.reorderInstructions' => 'Use up/down to move. Press OK to confirm.',
 			'search.hint' => 'Search movies, shows, music...',
 			'search.tryDifferentTerm' => 'Try a different search term',
 			'search.searchYourMedia' => 'Search your media',
@@ -4694,10 +4702,10 @@ extension on Translations {
 			'mpvConfig.configPlaceholder' => 'gpu-api=vulkan\nhwdec=auto\n# comment',
 			'dialog.confirmAction' => 'Confirm Action',
 			'profiles.addPlezyProfile' => 'Add Plezy profile',
-			'profiles.switchingProfile' => 'Switching profile…',
-			'profiles.deleteThisProfileTitle' => 'Delete this profile?',
 			_ => null,
 		} ?? switch (path) {
+			'profiles.switchingProfile' => 'Switching profile…',
+			'profiles.deleteThisProfileTitle' => 'Delete this profile?',
 			'profiles.deleteThisProfileMessage' => ({required Object displayName}) => 'Remove ${displayName}. Connections aren\'t affected.',
 			'profiles.active' => 'Active',
 			'profiles.manage' => 'Manage',
@@ -5208,10 +5216,10 @@ extension on Translations {
 			'metadataEdit.screenTitle' => 'Edit Metadata',
 			'metadataEdit.basicInfo' => 'Basic Info',
 			'metadataEdit.artwork' => 'Artwork',
-			'metadataEdit.advancedSettings' => 'Advanced Settings',
-			'metadataEdit.title' => 'Title',
 			_ => null,
 		} ?? switch (path) {
+			'metadataEdit.advancedSettings' => 'Advanced Settings',
+			'metadataEdit.title' => 'Title',
 			'metadataEdit.sortTitle' => 'Sort Title',
 			'metadataEdit.originalTitle' => 'Original Title',
 			'metadataEdit.releaseDate' => 'Release Date',
