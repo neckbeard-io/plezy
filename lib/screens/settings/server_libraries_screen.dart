@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart' show kLongPressTimeout;
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:provider/provider.dart';
 
@@ -28,8 +31,72 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
   bool _hiddenLibrariesExpanded = false;
   int? _reorderingIndex;
 
+  // Long-press detection state for controller select key
+  Timer? _longPressTimer;
+  String? _pendingSelectGlobalKey;
+  int? _pendingSelectIndex;
+  bool _longPressTriggered = false;
+
+  @override
+  void dispose() {
+    _longPressTimer?.cancel();
+    super.dispose();
+  }
+
   void _cancelReorder() {
     setState(() => _reorderingIndex = null);
+  }
+
+  void _cancelSelectTracking() {
+    _longPressTimer?.cancel();
+    _pendingSelectGlobalKey = null;
+    _pendingSelectIndex = null;
+    _longPressTriggered = false;
+  }
+
+  /// Start tracking a select key press for tap vs long-press.
+  void _startSelectTracking(int index, String globalKey) {
+    _longPressTimer?.cancel();
+    _pendingSelectGlobalKey = globalKey;
+    _pendingSelectIndex = index;
+    _longPressTriggered = false;
+    _longPressTimer = Timer(kLongPressTimeout, () {
+      _longPressTriggered = true;
+      setState(() => _reorderingIndex = _pendingSelectIndex);
+      _pendingSelectGlobalKey = null;
+      _pendingSelectIndex = null;
+    });
+  }
+
+  /// End tracking: if long-press didn't fire, treat as a tap (hide).
+  void _endSelectTracking() {
+    _longPressTimer?.cancel();
+    if (!_longPressTriggered && _pendingSelectGlobalKey != null) {
+      context.read<HiddenLibrariesProvider>().hideLibrary(_pendingSelectGlobalKey!);
+    }
+    _cancelSelectTracking();
+  }
+
+  /// Per-item key handler: intercepts select key to distinguish tap from
+  /// long-press. Sits between the ListTile and MaterialApp's Shortcuts in
+  /// the focus bubble chain, so returning [handled] prevents onTap from
+  /// firing via keyboard while leaving touch/mouse onTap unaffected.
+  KeyEventResult _handleItemKeyEvent(KeyEvent event, int index, String globalKey) {
+    if (_reorderingIndex != null) return KeyEventResult.ignored;
+    if (!event.logicalKey.isSelectKey) return KeyEventResult.ignored;
+
+    if (event is KeyDownEvent) {
+      _startSelectTracking(index, globalKey);
+      return KeyEventResult.handled;
+    }
+    if (event is KeyRepeatEvent) {
+      return KeyEventResult.handled;
+    }
+    if (event is KeyUpEvent) {
+      _endSelectTracking();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
   /// Move a visible library from [fromIndex] to [toIndex] and persist the order.
@@ -173,46 +240,50 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
                 final lib = visibleLibraries[index];
                 final isThisReordering = _reorderingIndex == index;
 
-                return Builder(
+                return Focus(
                   key: ValueKey(lib.globalKey),
-                  builder: (tileContext) => ListTile(
-                    tileColor: isThisReordering
-                        ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
-                        : null,
-                    leading: isReordering
-                        ? (isThisReordering
-                            ? Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  AppIcon(Symbols.arrow_upward_rounded, size: 18,
-                                      color: index > 0 ? null : Theme.of(context).disabledColor),
-                                  AppIcon(Symbols.arrow_downward_rounded, size: 18,
-                                      color: index < visibleLibraries.length - 1
-                                          ? null
-                                          : Theme.of(context).disabledColor),
-                                ],
-                              )
-                            : const SizedBox(width: 40))
-                        : ReorderableDragStartListener(
-                            index: index,
-                            child: MouseRegion(
-                              cursor: SystemMouseCursors.grab,
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: const AppIcon(Symbols.drag_handle_rounded),
+                  canRequestFocus: false,
+                  onKeyEvent: (_, event) => _handleItemKeyEvent(event, index, lib.globalKey),
+                  child: Builder(
+                    builder: (tileContext) => ListTile(
+                      tileColor: isThisReordering
+                          ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
+                          : null,
+                      leading: isReordering
+                          ? (isThisReordering
+                              ? Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    AppIcon(Symbols.arrow_upward_rounded, size: 18,
+                                        color: index > 0 ? null : Theme.of(context).disabledColor),
+                                    AppIcon(Symbols.arrow_downward_rounded, size: 18,
+                                        color: index < visibleLibraries.length - 1
+                                            ? null
+                                            : Theme.of(context).disabledColor),
+                                  ],
+                                )
+                              : const SizedBox(width: 40))
+                          : ReorderableDragStartListener(
+                              index: index,
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.grab,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: const AppIcon(Symbols.drag_handle_rounded),
+                                ),
                               ),
                             ),
-                          ),
-                    title: Text(lib.title),
-                    trailing: isReordering
-                        ? null
-                        : const AppIcon(Symbols.visibility_off_rounded),
-                    onTap: isReordering
-                        ? null
-                        : () => hiddenProvider.hideLibrary(lib.globalKey),
-                    onLongPress: isReordering
-                        ? null
-                        : () => setState(() => _reorderingIndex = index),
+                      title: Text(lib.title),
+                      trailing: isReordering
+                          ? null
+                          : const AppIcon(Symbols.visibility_off_rounded),
+                      onTap: isReordering
+                          ? null
+                          : () => hiddenProvider.hideLibrary(lib.globalKey),
+                      onLongPress: isReordering
+                          ? null
+                          : () => setState(() => _reorderingIndex = index),
+                    ),
                   ),
                 );
               },
@@ -249,17 +320,17 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
           ],
         );
 
-        // Intercept key events during reorder mode to prevent focus traversal
-        // and handle up/down/select/back for reordering.
-        if (isReordering) {
-          page = Focus(
-            canRequestFocus: false,
-            onKeyEvent: (_, event) => _handleReorderKeyEvent(event, visibleLibraries.length),
-            child: page,
-          );
-        }
-
-        return page;
+        // Always wrap in Focus to intercept key events:
+        // - In reorder mode: handle up/down/select/back for reordering
+        // - In normal mode: per-item Focus handles select key tap vs long-press
+        return Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) {
+            if (_reorderingIndex == null) return KeyEventResult.ignored;
+            return _handleReorderKeyEvent(event, visibleLibraries.length);
+          },
+          child: page,
+        );
       },
     );
   }
