@@ -625,8 +625,8 @@ class _PlaylistDetailScreenState extends BaseMediaListDetailScreen<PlaylistDetai
         backHandledByKeyEvent = true;
         _cancelMoveMode();
       } else {
-        // Navigate to app bar on BACK, set flag to prevent PopScope exit
-        handleBackFromContent();
+        // Pop directly back to playlists list
+        if (mounted) Navigator.pop(context);
       }
     });
     if (backResult != KeyEventResult.ignored) {
