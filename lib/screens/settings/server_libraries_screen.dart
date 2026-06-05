@@ -37,9 +37,20 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
   int? _pendingSelectIndex;
   bool _longPressTriggered = false;
 
+  // Explicit focus nodes keyed by library globalKey so we can
+  // re-focus the correct item after hiding one.
+  final Map<String, FocusNode> _focusNodes = {};
+
+  FocusNode _getFocusNode(String globalKey) {
+    return _focusNodes.putIfAbsent(globalKey, () => FocusNode(debugLabel: 'lib_$globalKey'));
+  }
+
   @override
   void dispose() {
     _longPressTimer?.cancel();
+    for (final node in _focusNodes.values) {
+      node.dispose();
+    }
     super.dispose();
   }
 
@@ -72,9 +83,34 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
   void _endSelectTracking() {
     _longPressTimer?.cancel();
     if (!_longPressTriggered && _pendingSelectGlobalKey != null) {
-      context.read<HiddenLibrariesProvider>().hideLibrary(_pendingSelectGlobalKey!);
+      final hiddenIndex = _pendingSelectIndex!;
+      final hiddenKey = _pendingSelectGlobalKey!;
+      context.read<HiddenLibrariesProvider>().hideLibrary(hiddenKey);
+      // Re-focus the next item after the hidden one is removed from the tree.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _refocusAfterHide(hiddenIndex, hiddenKey);
+      });
     }
     _cancelSelectTracking();
+  }
+
+  /// After hiding a library, focus the item that now occupies the same index
+  /// (or the last item if we hid the last one).
+  void _refocusAfterHide(int hiddenIndex, String hiddenKey) {
+    // Clean up the disposed focus node for the hidden library
+    _focusNodes.remove(hiddenKey)?.dispose();
+
+    final librariesProvider = context.read<LibrariesProvider>();
+    final hiddenProvider = context.read<HiddenLibrariesProvider>();
+    final visible = librariesProvider.libraries
+        .where((l) => l.serverId == widget.serverId)
+        .where((l) => !hiddenProvider.isLibraryHidden(l.globalKey))
+        .toList();
+    if (visible.isEmpty) return;
+
+    final targetIndex = hiddenIndex < visible.length ? hiddenIndex : visible.length - 1;
+    _getFocusNode(visible[targetIndex].globalKey).requestFocus();
   }
 
   /// Per-item key handler: intercepts select key to distinguish tap from
@@ -246,6 +282,7 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
                   onKeyEvent: (_, event) => _handleItemKeyEvent(event, index, lib.globalKey),
                   child: Builder(
                     builder: (tileContext) => ListTile(
+                      focusNode: _getFocusNode(lib.globalKey),
                       tileColor: isThisReordering
                           ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
                           : null,
