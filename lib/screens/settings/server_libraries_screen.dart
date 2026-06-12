@@ -30,6 +30,7 @@ class ServerLibrariesScreen extends StatefulWidget {
 class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
   bool _hiddenLibrariesExpanded = false;
   int? _reorderingIndex;
+  String? _reorderingGlobalKey;
 
   // Long-press detection state for controller select key
   Timer? _longPressTimer;
@@ -55,7 +56,16 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
   }
 
   void _cancelReorder() {
-    setState(() => _reorderingIndex = null);
+    final key = _reorderingGlobalKey;
+    setState(() {
+      _reorderingIndex = null;
+      _reorderingGlobalKey = null;
+    });
+    if (key != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _getFocusNode(key).requestFocus();
+      });
+    }
   }
 
   void _cancelSelectTracking() {
@@ -73,9 +83,19 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
     _longPressTriggered = false;
     _longPressTimer = Timer(kLongPressTimeout, () {
       _longPressTriggered = true;
-      setState(() => _reorderingIndex = _pendingSelectIndex);
+      final gk = _pendingSelectGlobalKey;
+      setState(() {
+        _reorderingIndex = _pendingSelectIndex;
+        _reorderingGlobalKey = gk;
+      });
       _pendingSelectGlobalKey = null;
       _pendingSelectIndex = null;
+      // Re-focus the reordering item so the highlight stays on it
+      if (gk != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _getFocusNode(gk).requestFocus();
+        });
+      }
     });
   }
 
@@ -168,6 +188,10 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
 
     librariesProvider.updateLibraryOrder(updated);
     setState(() => _reorderingIndex = toIndex);
+    // Re-focus the moved item so the highlight follows it
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _getFocusNode(item.globalKey).requestFocus();
+    });
   }
 
   KeyEventResult _handleReorderKeyEvent(KeyEvent event, int visibleCount) {
@@ -244,6 +268,7 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
         // Clamp reordering index if libraries changed underneath
         if (_reorderingIndex != null && _reorderingIndex! >= visibleLibraries.length) {
           _reorderingIndex = null;
+          _reorderingGlobalKey = null;
         }
 
         final isReordering = _reorderingIndex != null;
@@ -274,7 +299,7 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
               },
               itemBuilder: (context, index) {
                 final lib = visibleLibraries[index];
-                final isThisReordering = _reorderingIndex == index;
+                final isThisReordering = _reorderingGlobalKey == lib.globalKey;
 
                 return Focus(
                   key: ValueKey(lib.globalKey),
@@ -284,7 +309,7 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
                     builder: (tileContext) => ListTile(
                       focusNode: _getFocusNode(lib.globalKey),
                       tileColor: isThisReordering
-                          ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
+                          ? Theme.of(context).colorScheme.primaryContainer
                           : null,
                       leading: isReordering
                           ? (isThisReordering
@@ -315,11 +340,14 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
                           ? null
                           : const AppIcon(Symbols.visibility_off_rounded),
                       onTap: isReordering
-                          ? null
+                          ? (isThisReordering ? () {} : null)
                           : () => hiddenProvider.hideLibrary(lib.globalKey),
                       onLongPress: isReordering
                           ? null
-                          : () => setState(() => _reorderingIndex = index),
+                          : () => setState(() {
+                              _reorderingIndex = index;
+                              _reorderingGlobalKey = lib.globalKey;
+                            }),
                     ),
                   ),
                 );
