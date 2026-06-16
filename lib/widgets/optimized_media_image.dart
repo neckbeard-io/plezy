@@ -373,10 +373,31 @@ class OptimizedMediaImage extends StatelessWidget {
       _surfacePlaceholder(context, icon: fallbackIcon ?? Symbols.image_not_supported_rounded);
 
   String _generateCacheKey(String imageUrl) {
-    // URL already encodes bucketed transcode dimensions via roundDimensions,
-    // so the URL hash alone uniquely identifies the bytes on disk. Including
-    // mem-cache dimensions here would re-introduce churn on every pixel of
-    // window resize and defeat getMemCacheDimensions' bucketing.
-    return 'plex_optimized_${sha1.convert(utf8.encode(imageUrl))}';
+    // Build cache key independent of the server's base URL so Plex endpoint
+    // failover doesn't invalidate already-downloaded artwork.  The scheme,
+    // host, and port can change across failover endpoints but the image
+    // content is identical — only the path/query matter for identity.
+    //
+    // CachedNetworkImageProvider uses cacheKey for both its `==`/`hashCode`
+    // (so Flutter's ImageCache reuses the live ImageStream) and for the
+    // flutter_cache_manager disk lookup.  Keeping the key stable across
+    // endpoint switches avoids placeholder flashes and black posters.
+    try {
+      final uri = Uri.parse(imageUrl);
+      final query = uri.queryParameters;
+      // Plex transcode URLs encode the real image path in the `url` param.
+      final innerUrl = query['url'];
+      if (innerUrl != null) {
+        final w = query['width'] ?? '';
+        final h = query['height'] ?? '';
+        return 'plex_optimized_${sha1.convert(utf8.encode('$innerUrl|$w|$h'))}';
+      }
+      // Non-transcode / Jellyfin URLs: path + query uniquely identify the
+      // image without depending on scheme+host+port.
+      return 'plex_optimized_${sha1.convert(utf8.encode('${uri.path}?${uri.query}'))}';
+    } catch (_) {
+      // Malformed URL — fall back to hashing the whole string.
+      return 'plex_optimized_${sha1.convert(utf8.encode(imageUrl))}';
+    }
   }
 }
