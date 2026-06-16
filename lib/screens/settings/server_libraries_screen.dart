@@ -32,6 +32,10 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
   int? _reorderingIndex;
   String? _reorderingGlobalKey;
 
+  // globalKey of the currently focused library row, so we can keep it visibly
+  // highlighted even when not reordering (e.g. right after placing an item).
+  String? _focusedGlobalKey;
+
   // Long-press detection state for controller select key
   Timer? _longPressTimer;
   String? _pendingSelectGlobalKey;
@@ -44,6 +48,29 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
 
   FocusNode _getFocusNode(String globalKey) {
     return _focusNodes.putIfAbsent(globalKey, () => FocusNode(debugLabel: 'lib_$globalKey'));
+  }
+
+  /// Focus the item with [globalKey] and scroll it into view (centered).
+  ///
+  /// A manual [FocusNode.requestFocus] does not auto-scroll the list the way
+  /// directional focus traversal does, so on long lists (>= ~12 libraries) the
+  /// highlighted item being reordered can end up off-screen. Centering keeps the
+  /// moving item and its neighbors visible during a reorder.
+  void _focusAndReveal(String globalKey) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final node = _getFocusNode(globalKey);
+      node.requestFocus();
+      final ctx = node.context;
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          alignment: 0.5,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
@@ -61,11 +88,7 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
       _reorderingIndex = null;
       _reorderingGlobalKey = null;
     });
-    if (key != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _getFocusNode(key).requestFocus();
-      });
-    }
+    if (key != null) _focusAndReveal(key);
   }
 
   void _cancelSelectTracking() {
@@ -91,11 +114,7 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
       _pendingSelectGlobalKey = null;
       _pendingSelectIndex = null;
       // Re-focus the reordering item so the highlight stays on it
-      if (gk != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _getFocusNode(gk).requestFocus();
-        });
-      }
+      if (gk != null) _focusAndReveal(gk);
     });
   }
 
@@ -188,10 +207,9 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
 
     librariesProvider.updateLibraryOrder(updated);
     setState(() => _reorderingIndex = toIndex);
-    // Re-focus the moved item so the highlight follows it
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _getFocusNode(item.globalKey).requestFocus();
-    });
+    // Re-focus the moved item so the highlight follows it (and scroll it into
+    // view, otherwise on long lists it scrolls off-screen).
+    _focusAndReveal(item.globalKey);
   }
 
   KeyEventResult _handleReorderKeyEvent(KeyEvent event, int visibleCount) {
@@ -300,17 +318,40 @@ class _ServerLibrariesScreenState extends State<ServerLibrariesScreen> {
               itemBuilder: (context, index) {
                 final lib = visibleLibraries[index];
                 final isThisReordering = _reorderingGlobalKey == lib.globalKey;
+                final isFocused = _focusedGlobalKey == lib.globalKey;
+
+                final cs = Theme.of(context).colorScheme;
+                // Single, consistent focus highlight used in every state (idle
+                // focus, reordering, and just-placed). We bake the "focused"
+                // brightness into the tileColor and disable the native ListTile
+                // focus overlay below, so a programmatic requestFocus (after a
+                // move) looks identical to D-pad navigation focus. The up/down
+                // arrows are what signal reorder mode, not the row color.
+                final focusHighlight = Color.alphaBlend(
+                  cs.onSurface.withValues(alpha: 0.12),
+                  cs.primaryContainer,
+                );
 
                 return Focus(
                   key: ValueKey(lib.globalKey),
                   canRequestFocus: false,
+                  onFocusChange: (hasFocus) {
+                    if (hasFocus) {
+                      if (_focusedGlobalKey != lib.globalKey) {
+                        setState(() => _focusedGlobalKey = lib.globalKey);
+                      }
+                    } else if (_focusedGlobalKey == lib.globalKey) {
+                      setState(() => _focusedGlobalKey = null);
+                    }
+                  },
                   onKeyEvent: (_, event) => _handleItemKeyEvent(event, index, lib.globalKey),
                   child: Builder(
                     builder: (tileContext) => ListTile(
                       focusNode: _getFocusNode(lib.globalKey),
-                      tileColor: isThisReordering
-                          ? Theme.of(context).colorScheme.primaryContainer
-                          : null,
+                      // Disable the variable native focus overlay; the highlight
+                      // is driven entirely by tileColor so it's consistent.
+                      focusColor: Colors.transparent,
+                      tileColor: isFocused ? focusHighlight : null,
                       leading: isReordering
                           ? (isThisReordering
                               ? Column(
