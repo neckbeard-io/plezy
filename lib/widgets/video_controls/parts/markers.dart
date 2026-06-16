@@ -25,6 +25,12 @@ extension _PlexVideoControlsMarkerMethods on _PlexVideoControlsState {
       }
     }
 
+    // After skipping, the throttled post-seek position can momentarily still
+    // land inside the marker we just left. Ignore it until the position moves
+    // out, so the button doesn't flash back with a fresh countdown.
+    if (foundMarker != null && foundMarker == _suppressedSkipMarker) return;
+    _suppressedSkipMarker = null;
+
     if (foundMarker != _currentMarker && mounted) {
       _updateCurrentMarker(foundMarker);
     }
@@ -110,6 +116,8 @@ extension _PlexVideoControlsMarkerMethods on _PlexVideoControlsState {
     _setControlsState(() {
       _currentMarker = null;
     });
+    // Don't let the post-seek position re-show the marker we just skipped.
+    _suppressedSkipMarker = marker;
     _cancelAutoSkipTimer();
     _cancelSkipButtonDismissTimer();
   }
@@ -184,6 +192,58 @@ extension _PlexVideoControlsMarkerMethods on _PlexVideoControlsState {
   void _cancelSkipButtonDismissTimer() {
     _skipButtonDismissTimer?.cancel();
     _skipButtonDismissTimer = null;
+  }
+
+  /// Handle a Back press while the skip intro/credits button is focused.
+  ///
+  /// Returns true if Back was consumed by the skip button (so the caller skips
+  /// its normal back handling — hiding controls / exiting the player):
+  /// - If an auto-skip countdown is running, cancel just the countdown. The
+  ///   button stays visible (now static) so the user can still skip manually,
+  ///   and the no-interaction dismiss timer is (re)started.
+  /// - Otherwise (button just showing), deactivate it: dim the button and move
+  ///   focus to the timeline. Navigating back UP onto it re-activates it.
+  ///
+  /// Returns false when the button isn't focused/visible, so Back falls through
+  /// to the player's usual behavior.
+  bool _handleSkipMarkerBack() {
+    if (!_skipMarkerFocusNode.hasFocus) return false;
+    final isVisible = shouldShowSkipMarkerButton(
+      hasFirstFrame: _hasRenderedFirstFrame,
+      hasMarker: _currentMarker != null,
+      hasPlayNextPrompt: widget.playNextFocusNode != null,
+      skipButtonDismissed: _skipButtonDismissed,
+      controlsVisible: _showControls,
+    );
+    if (!isVisible) return false;
+
+    if (_autoSkipTimer?.isActive ?? false) {
+      // First Back: stop the countdown but keep the button for manual skipping.
+      _cancelAutoSkipTimer();
+      _startSkipButtonDismissTimer();
+      return true;
+    }
+
+    // Button just showing: deactivate it.
+    _deactivateSkipButton();
+    return true;
+  }
+
+  /// Hand focus to the timeline instead of hiding the button, which dims it to
+  /// 80% (opacity is focus-driven). Hard-hiding left focus stranded on the root
+  /// node where the controls' directional navigation had nothing to move from,
+  /// so navigation appeared dead. Moving focus to a real control keeps D-pad
+  /// navigation working; pressing UP from the timeline re-focuses the button
+  /// (see _hideControlsFromKeyboard), restoring full opacity.
+  void _deactivateSkipButton() {
+    _cancelAutoSkipTimer();
+    _cancelSkipButtonDismissTimer();
+    _showControlsWithTimelineFocus();
+  }
+
+  /// Skip button opacity is focus-driven, so rebuild whenever its focus changes.
+  void _onSkipMarkerFocusChange() {
+    _setControlsState(() {});
   }
 
   /// Perform the appropriate skip action based on marker type and next episode availability
