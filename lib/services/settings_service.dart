@@ -11,9 +11,11 @@ import '../i18n/strings.g.dart';
 import '../models/mpv_config_models.dart';
 import '../models/external_player_models.dart';
 import 'base_shared_preferences_service.dart';
+import 'device_performance.dart';
 export 'base_shared_preferences_service.dart'
     show Pref, BoolPref, IntPref, DoublePref, StringPref, NullableStringPref, StringListPref, EnumPref, JsonPref;
 import '../models/transcode_quality_preset.dart';
+import '../navigation/navigation_tabs.dart';
 import '../utils/platform_detector.dart';
 import 'trackers/tracker_constants.dart';
 
@@ -33,6 +35,8 @@ class LibraryDensity {
 enum ViewMode { grid, list }
 
 enum EpisodePosterMode { seriesPoster, seasonPoster, episodeThumbnail }
+
+enum ContinueWatchingAction { play, details }
 
 enum SubAssOverride { no, yes, scale, force, strip }
 
@@ -345,6 +349,11 @@ class SettingsService extends BaseSharedPreferencesService {
   );
   static const autoPlayNextEpisode = BoolPref('auto_play_next_episode', defaultValue: true);
   static const useExoPlayer = BoolPref('use_exoplayer', defaultValue: true);
+  static const startupSection = EnumPref<NavigationTabId>(
+    'startup_section',
+    values: NavigationTabId.values,
+    defaultValue: NavigationTabId.discover,
+  );
   static const alwaysKeepSidebarOpen = BoolPref('always_keep_sidebar_open');
   static const showUnwatchedCount = BoolPref('show_unwatched_count', defaultValue: true);
   static const showEpisodeNumberOnCards = BoolPref('show_episode_number_on_cards', defaultValue: true);
@@ -355,6 +364,11 @@ class SettingsService extends BaseSharedPreferencesService {
   static const requireProfileSelectionOnOpen = BoolPref('require_profile_selection_on_open');
   static const useExternalPlayer = BoolPref('use_external_player');
   static const forceTvMode = BoolPref('force_tv_mode');
+  static const visualEffects = EnumPref<VisualEffectsSetting>(
+    'visual_effects',
+    values: VisualEffectsSetting.values,
+    defaultValue: VisualEffectsSetting.auto,
+  );
   static const ambientLighting = BoolPref('ambient_lighting');
   static const audioPassthrough = BoolPref('audio_passthrough');
   static const audioNormalization = BoolPref('audio_normalization');
@@ -400,6 +414,11 @@ class SettingsService extends BaseSharedPreferencesService {
   static const bufferSize = _BufferSizePref();
   static const libraryDensity = _LibraryDensityPref();
   static const episodePosterMode = _EpisodePosterModePref();
+  static const continueWatchingAction = EnumPref<ContinueWatchingAction>(
+    'continue_watching_action',
+    values: ContinueWatchingAction.values,
+    defaultValue: ContinueWatchingAction.play,
+  );
   static const mpvConfigText = _MpvConfigTextPref();
 
   static final keyboardShortcuts = JsonPref<Map<String, String>>(
@@ -467,6 +486,15 @@ class SettingsService extends BaseSharedPreferencesService {
 
   /// Synchronous access to the singleton, or null if not yet initialized.
   static SettingsService? get instanceOrNull => _cachedInstance;
+
+  /// Synchronous access to the bootstrapped singleton.
+  static SettingsService get instance {
+    final instance = _cachedInstance;
+    if (instance == null) {
+      throw StateError('SettingsService has not been initialized. Call SettingsService.getInstance() first.');
+    }
+    return instance;
+  }
 
   /// Drop the cached singleton so the next [getInstance] call rebuilds against
   /// the current SharedPreferences state. Test-only — pair with
@@ -687,6 +715,7 @@ class SettingsService extends BaseSharedPreferencesService {
     preferredAudioCodec,
     viewMode,
     showHeroSection,
+    continueWatchingAction,
     seekTimeSmall,
     seekTimeLarge,
     sleepTimerDuration,
@@ -722,6 +751,7 @@ class SettingsService extends BaseSharedPreferencesService {
     defaultBoxFitMode,
     autoPlayNextEpisode,
     useExoPlayer,
+    startupSection,
     alwaysKeepSidebarOpen,
     showUnwatchedCount,
     showEpisodeNumberOnCards,
@@ -732,6 +762,7 @@ class SettingsService extends BaseSharedPreferencesService {
     requireProfileSelectionOnOpen,
     useExternalPlayer,
     forceTvMode,
+    visualEffects,
     ambientLighting,
     audioPassthrough,
     audioNormalization,

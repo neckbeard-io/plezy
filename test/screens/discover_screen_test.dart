@@ -182,8 +182,15 @@ void main() {
         : desiredSpotlightBottom;
     expect(spotlightBackground.contentBottom, closeTo(expectedSpotlightBottom, 0.001));
 
+    // The rail no longer receives the bleed via constructor (a per-flip param
+    // would rebuild the whole rail); its bleed layer reads the scope's
+    // sideNavigationWidth itself. Assert the rendered bleed position instead.
     final browseRail = tester.widget<TvBrowseRail>(find.byType(TvBrowseRail));
-    expect(browseRail.backgroundBleedLeft, targetSidebarOffset);
+    expect(browseRail.backgroundBleedLeft, isNull);
+    final railBleedPositions = tester
+        .widgetList<Positioned>(find.descendant(of: find.byType(TvBrowseRail), matching: find.byType(Positioned)))
+        .where((p) => p.left == -targetSidebarOffset);
+    expect(railBleedPositions, isNotEmpty, reason: 'rail bleed layer positions at -sideNavigationWidth');
 
     final backgroundPosition = tester.widget<Positioned>(
       find.ancestor(of: find.byType(TvSpotlightBackground), matching: find.byType(Positioned)).first,
@@ -241,7 +248,8 @@ class _FakeMediaServerClient implements MediaServerClient {
   Future<List<MediaItem>> fetchContinueWatching({int? count = 20}) async => const [];
 
   @override
-  Future<List<MediaHub>> fetchGlobalHubs({int limit = 10, bool includePlaybackHubs = true}) async => hubs;
+  Future<List<MediaHub>> fetchGlobalHubs({int limit = defaultHubPreviewLimit, bool includePlaybackHubs = true}) async =>
+      hubs;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
