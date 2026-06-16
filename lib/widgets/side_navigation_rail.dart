@@ -336,14 +336,26 @@ class SideNavigationRailState extends State<SideNavigationRail> with MountedSetS
   /// If [targetKey] is provided, try it first (used when the caller captured
   /// the intended target before a focus-scope switch overwrote it).
   void focusActiveItem({String? targetKey}) {
-    if (targetKey != null) {
-      final node = _focusTracker.nodeFor(targetKey);
-      if (node != null) {
-        node.requestFocus();
-        return;
+    // Resolve the node we intend to focus: explicit target, else last focused,
+    // else Home fallback. Mirrors FocusMemoryTracker.restoreFocus' precedence
+    // but keeps the node so we can scroll it into view.
+    final node =
+        (targetKey != null ? _focusTracker.nodeFor(targetKey) : null) ??
+        (lastFocusedKey != null ? _focusTracker.nodeFor(lastFocusedKey!) : null) ??
+        _focusTracker.nodeFor(_kHome);
+    if (node == null) return;
+    node.requestFocus();
+    // A programmatic requestFocus does not auto-scroll the rail's ListView the
+    // way D-pad traversal does, so a restored item below the fold (e.g.
+    // Settings) would otherwise stay focused but off-screen. Centering it keeps
+    // the restored item visible. Matches _handleVerticalNavigation.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final ctx = node.context;
+      if (ctx != null) {
+        Scrollable.ensureVisible(ctx, alignment: 0.5, duration: const Duration(milliseconds: 200));
       }
-    }
-    _focusTracker.restoreFocus(fallbackKey: _kHome);
+    });
   }
 
   String _serverHeaderFocusKey(_LibraryNavSection section, ServerId serverId) =>
