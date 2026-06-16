@@ -188,6 +188,10 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
       BackKeyCoordinator.markHandled();
     }
     final backResult = handleBackKeyAction(event, () {
+      // When the skip intro/credits button is focused, Back acts on it first:
+      // cancel an active countdown, else dismiss the button — instead of
+      // hiding controls or exiting the player.
+      if (_handleSkipMarkerBack()) return;
       if (PlatformDetector.isTV()) {
         if (_showControls) {
           if (widget.chromeController.contentStripVisible) {
