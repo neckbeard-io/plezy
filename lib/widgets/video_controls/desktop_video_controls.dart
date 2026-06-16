@@ -516,6 +516,22 @@ class DesktopVideoControlsState extends State<DesktopVideoControls> {
       return KeyEventResult.handled;
     }
 
+    // Select/Enter on the seekbar toggles play/pause
+    if (key == LogicalKeyboardKey.select ||
+        key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter ||
+        key == LogicalKeyboardKey.gameButtonA) {
+      if (_canControl) {
+        if (widget.player.state.playing) {
+          widget.player.pause();
+        } else {
+          widget.player.play();
+        }
+      }
+      widget.onFocusActivity?.call();
+      return KeyEventResult.handled;
+    }
+
     // LEFT/RIGHT for smooth scrubbing with progressive acceleration
     if (key == LogicalKeyboardKey.arrowLeft || key == LogicalKeyboardKey.arrowRight) {
       // Ignore seeking if user cannot control
