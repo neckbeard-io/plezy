@@ -20,7 +20,7 @@ import 'package:provider/provider.dart';
 import 'playlist_item_card.dart';
 import '../../i18n/strings.g.dart';
 import '../../providers/download_provider.dart';
-import '../../providers/watch_state_overlay_provider.dart';
+import '../../providers/watch_state_store.dart';
 import '../../utils/platform_detector.dart';
 import '../../utils/dialogs.dart';
 import '../../utils/download_utils.dart';
@@ -73,7 +73,7 @@ class _PlaylistDetailScreenState extends BaseMediaListDetailScreen<PlaylistDetai
   /// Find the first unwatched or partially-watched item in the playlist,
   /// applying any session-local watch-state patches.
   MediaItem? _findResumeItem() {
-    final overlay = context.read<WatchStateOverlayProvider>();
+    final overlay = context.read<WatchStateStore>();
     for (final item in items) {
       final effective = overlay.apply(item);
       // Partially watched → resume this one
