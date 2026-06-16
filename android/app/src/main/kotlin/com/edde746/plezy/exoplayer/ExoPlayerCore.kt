@@ -155,6 +155,12 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
   private var currentTunneledPlayback: Boolean = false
   private var lastSeekable: Boolean? = null
 
+  // Seek state: suppresses transient onIsPlayingChanged events during seeks.
+  // ExoPlayer fires isPlaying=false (enters buffering) then isPlaying=true
+  // (ready) on every seek, which causes rapid pause/play events that trigger
+  // Plex webhooks and home-automation actions (e.g. lights toggling).
+  private var isSeeking = false
+
   @Volatile private var disposing: Boolean = false
   private var pendingStartPositionMs: Long = 0L
   private var pendingPlayWhenReady: Boolean? = null
@@ -845,8 +851,14 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
   }
 
   override fun onIsPlayingChanged(isPlaying: Boolean) {
-    Log.d(TAG, "onIsPlayingChanged: $isPlaying")
+    Log.d(TAG, "onIsPlayingChanged: $isPlaying (seeking=$isSeeking)")
     if (isPlaying) pendingPlayWhenReady = null
+    if (isSeeking) {
+      // Suppress the transient pause/play during a seek. The flag is cleared
+      // in onPlaybackStateChanged(READY) which fires before this callback
+      // when the seek completes, so the final isPlaying=true emits normally.
+      return
+    }
     delegate?.onPropertyChange("pause", !isPlaying)
   }
 
@@ -866,6 +878,10 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
         delegate?.onPropertyChange("paused-for-cache", true)
       }
       Player.STATE_READY -> {
+        // Seek is complete — clear the flag so the subsequent
+        // onIsPlayingChanged(true) emits the real playing state.
+        isSeeking = false
+
         // Restore start position if it was lost during track reselection
         // (e.g. tunneling state change in onTracksChanged triggers renderer teardown)
         if (pendingStartPositionMs > 0L) {
@@ -2696,6 +2712,7 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
 
   fun seekTo(positionMs: Long) {
     val player = exoPlayer ?: return
+    isSeeking = true
     val durationMs = player.duration
     val clampedPositionMs = if (!currentMediaIsLive && durationMs != C.TIME_UNSET && durationMs > 0L) {
       positionMs.coerceIn(0L, durationMs)
@@ -3197,6 +3214,7 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
     currentTunneledPlayback = false
     pendingStartPositionMs = 0L
     pendingPlayWhenReady = null
+    isSeeking = false
     currentMediaIsLive = false
     currentVisible = false
     emitSeekable(false, force = true)
