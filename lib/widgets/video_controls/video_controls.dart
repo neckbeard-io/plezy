@@ -381,6 +381,10 @@ class _PlexVideoControlsState extends State<PlexVideoControls>
   // Skip button dismiss state
   bool _skipButtonDismissed = false;
   Timer? _skipButtonDismissTimer;
+  // Marker we just skipped; ignored for re-detection until the position moves
+  // out of it, so the button doesn't flash back with a fresh countdown when the
+  // post-seek position momentarily lands on the marker boundary.
+  MediaMarker? _suppressedSkipMarker;
   // Video player navigation (use arrow keys to navigate controls)
   bool get _videoPlayerNavigationEnabled => _settings.read(SettingsService.videoPlayerNavigationEnabled);
   // Performance overlay
@@ -411,6 +415,7 @@ class _PlexVideoControlsState extends State<PlexVideoControls>
     _lastControlsVisible = widget.chromeController.controlsVisible;
     _focusNode = FocusNode();
     _skipMarkerFocusNode = FocusNode(debugLabel: 'SkipMarkerButton');
+    _skipMarkerFocusNode.addListener(_onSkipMarkerFocusChange);
     _seekThrottle = throttle(
       (Duration pos) {
         unawaited(_seekToPosition(pos, notifyCompletion: false));
@@ -515,6 +520,7 @@ class _PlexVideoControlsState extends State<PlexVideoControls>
     _positionSubscription?.cancel();
     _rateSubscription?.cancel();
     _focusNode.dispose();
+    _skipMarkerFocusNode.removeListener(_onSkipMarkerFocusChange);
     _skipMarkerFocusNode.dispose();
     _fallbackHasFirstFrame.dispose();
     // Restore original rate if long-press was active when disposed
@@ -801,7 +807,13 @@ class _PlexVideoControlsState extends State<PlexVideoControls>
                         return isMobile ? 80.0 : 115.0;
                       }(),
                       child: AnimatedOpacity(
-                        opacity: 1.0,
+                        // Dim to 80% whenever the button isn't focused during
+                        // keyboard/D-pad navigation (e.g. after navigating down
+                        // off it, or deactivating via Back). Touch input keeps
+                        // it fully opaque since there's no focus there.
+                        opacity: (InputModeTracker.isKeyboardMode(context) && !_skipMarkerFocusNode.hasFocus)
+                            ? 0.8
+                            : 1.0,
                         duration: tokens(context).slow,
                         child: _buildSkipMarkerButton(),
                       ),
