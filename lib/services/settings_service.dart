@@ -316,6 +316,7 @@ class SettingsService extends BaseSharedPreferencesService {
   static const rememberTrackSelections = BoolPref('remember_track_selections', defaultValue: true);
   static const showChapterMarkersOnTimeline = BoolPref('show_chapter_markers_on_timeline', defaultValue: true);
   static const clickVideoTogglesPlayback = BoolPref('click_video_toggles_playback');
+  static const selectShowsOsdTimeline = BoolPref('select_shows_osd_timeline');
   static const autoSkipIntro = BoolPref('auto_skip_intro');
   static const autoSkipCredits = BoolPref('auto_skip_credits');
   static const forceSkipMarkerFallback = BoolPref('force_skip_marker_fallback');

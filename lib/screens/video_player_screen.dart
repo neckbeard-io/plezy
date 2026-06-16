@@ -1395,7 +1395,7 @@ class VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindin
         // focused, e.g. after controls auto-hide), redirect to first descendant.
         if (node.hasPrimaryFocus) {
           if (event.isActionable) {
-            _chromeController.show(focusTarget: PlayerChromeFocusTarget.playPause);
+            _chromeController.show(focusTarget: PlayerChromeFocusTarget.timeline);
           }
           return event.logicalKey.isNavigationKey ? KeyEventResult.handled : KeyEventResult.ignored;
         }
