@@ -162,6 +162,12 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
             title: t.settings.clickVideoTogglesPlayback,
             subtitle: t.settings.clickVideoTogglesPlaybackDescription,
           ),
+        SettingSwitchTile(
+          pref: SettingsService.selectShowsOsdTimeline,
+          icon: Symbols.radio_button_checked_rounded,
+          title: t.settings.selectShowsOsdTimeline,
+          subtitle: t.settings.selectShowsOsdTimelineDescription,
+        ),
 
         SettingsSectionHeader(t.settings.autoSkip),
         SettingSwitchTile(
