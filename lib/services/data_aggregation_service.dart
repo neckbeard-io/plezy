@@ -90,12 +90,10 @@ class DataAggregationService {
       }).toList();
     }
 
-    // Sort by most recently viewed, falling back to addedAt for unwatched items
-    filteredOnDeck.sort((a, b) {
-      final aTime = a.lastViewedAt ?? a.addedAt ?? 0;
-      final bTime = b.lastViewedAt ?? b.addedAt ?? 0;
-      return bTime.compareTo(aTime); // Descending (most recent first)
-    });
+    // Sort by most recently viewed, falling back to addedAt for unwatched items.
+    // Same key as JellyfinClient's continue-watching merge (MediaItem.recencySortKey)
+    // so per-server and cross-server ordering can't drift apart.
+    filteredOnDeck.sort((a, b) => b.recencySortKey.compareTo(a.recencySortKey));
 
     filteredOnDeck = await _deduplicateContinueWatching(filteredOnDeck);
 
@@ -269,26 +267,27 @@ class DataAggregationService {
     final futures = clients.entries
         .where((entry) => hiddenServerIds == null || !hiddenServerIds.contains(entry.key))
         .map((entry) async {
-          final serverId = entry.key;
-          final client = entry.value;
-          try {
-            final serverLibraries = libraries?[serverId];
-            final shouldUseGlobalHubs = useGlobalHubs && client.capabilities.richHubs;
-            final hubs = shouldUseGlobalHubs
-                ? await client.fetchGlobalHubs(limit: limit ?? 10, includePlaybackHubs: includePlaybackHubs)
-                : await _fetchLibraryHubsForClient(
-                    client,
-                    limit: limit ?? 10,
-                    hiddenLibraryKeys: hiddenLibraryKeys,
-                    includePlaybackHubs: includePlaybackHubs,
-                    libraries: useGlobalHubs ? serverLibraries : null,
-                  );
-            return _postProcessHubs(hubs, serverId: ServerId(serverId), hiddenLibraryKeys: hiddenLibraryKeys);
-          } catch (e, stackTrace) {
-            appLogger.e('Failed to fetch hubs from server $serverId', error: e, stackTrace: stackTrace);
-            return <MediaHub>[];
-          }
-        });
+      final serverId = entry.key;
+      final client = entry.value;
+      try {
+        final serverLibraries = libraries?[serverId];
+        final shouldUseGlobalHubs = useGlobalHubs && client.capabilities.richHubs;
+        final hubItemLimit = limit ?? defaultHubPreviewLimit;
+        final hubs = shouldUseGlobalHubs
+            ? await client.fetchGlobalHubs(limit: hubItemLimit, includePlaybackHubs: includePlaybackHubs)
+            : await _fetchLibraryHubsForClient(
+                client,
+                limit: hubItemLimit,
+                hiddenLibraryKeys: hiddenLibraryKeys,
+                includePlaybackHubs: includePlaybackHubs,
+                libraries: useGlobalHubs ? serverLibraries : null,
+              );
+        return _postProcessHubs(hubs, serverId: ServerId(serverId), hiddenLibraryKeys: hiddenLibraryKeys);
+      } catch (e, stackTrace) {
+        appLogger.e('Failed to fetch hubs from server $serverId', error: e, stackTrace: stackTrace);
+        return <MediaHub>[];
+      }
+    });
 
     final results = await Future.wait(futures);
     final all = <MediaHub>[];

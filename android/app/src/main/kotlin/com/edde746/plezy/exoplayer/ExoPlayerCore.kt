@@ -4,7 +4,6 @@ import android.app.Activity
 import android.app.ActivityManager
 import android.content.Context
 import android.graphics.Color
-import android.graphics.PixelFormat
 import android.graphics.Typeface
 import android.media.AudioDeviceInfo
 import android.media.AudioFormat
@@ -17,7 +16,6 @@ import android.os.Looper
 import android.util.Log
 import android.view.Gravity
 import android.view.SurfaceView
-import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
@@ -61,14 +59,13 @@ import androidx.media3.extractor.ts.TsExtractor
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.CaptionStyleCompat
 import androidx.media3.ui.SubtitleView
+import com.edde746.plezy.libass.media.AssHandler
+import com.edde746.plezy.libass.media.parser.AssSubtitleParserFactory
+import com.edde746.plezy.libass.media.widget.AssSubtitleSurfaceView
 import com.edde746.plezy.shared.AudioFocusManager
 import com.edde746.plezy.shared.DeviceQuirks
 import com.edde746.plezy.shared.FlutterOverlayHelper
 import com.edde746.plezy.shared.FrameRateManager
-import io.github.peerless2012.ass.media.AssHandler
-import io.github.peerless2012.ass.media.parser.AssSubtitleParserFactory
-import io.github.peerless2012.ass.media.type.AssRenderType
-import io.github.peerless2012.ass.media.widget.AssSubtitleSurfaceView
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicLong
 import org.chromium.net.CronetEngine
@@ -99,6 +96,10 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
     private const val DECODER_HANG_TIMEOUT_MS = 5000L
     private const val MAX_AUDIO_RECOVERY_ATTEMPTS = 2
     private const val FPS_SAMPLE_COUNT = 8
+
+    /** Per-frame "video is at X" logcat stream (tag AssFrameCb) for diagnosing
+     *  ASS subtitle lag against the libass pipeline's render/swap lines. */
+    private const val ASS_FRAME_LOGS = false
     private const val TS_TIMESTAMP_SEARCH_PACKETS = 1800
     private val DV_CODEC_PROFILE_REGEX = Regex("""(?:^|,)\s*dvh[1e]\.(\d{2})""")
 
@@ -125,6 +126,9 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
   private var subtitleView: SubtitleView? = null
   private var videoZoomScale: Float = 1.0f
   private var assHandler: AssHandler? = null
+  private var assSubtitleView: AssSubtitleSurfaceView? = null
+  private var assForceMargins = false
+  private var lastAssMargins: IntArray? = null
   private var overlayLayoutListener: ViewTreeObserver.OnGlobalLayoutListener? = null
   private var lastVideoSize: VideoSize? = null
   private var exoPlayer: ExoPlayer? = null
@@ -141,10 +145,21 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
   private var tunnelingDisabledForVideoCodec: Boolean = false
   private var tunnelingDisabledForDecodedTrueHdPcm: Boolean = false
   private var tunnelingDisabledForAudioRecovery: Boolean = false
+
+  // Tunneled playback never fires the VideoFrameMetadataListener (media3 releases
+  // frames inside the codec), which is the libass pipeline's only render trigger —
+  // ASS subs would freeze. Correctness over tunneling while an ASS track is active.
+  private var tunnelingDisabledForAssSubtitles: Boolean = false
   private val tunnelingDisabledForCodec: Boolean
     get() = tunnelingDisabledForAudioCodec || tunnelingDisabledForVideoCodec || tunnelingDisabledForDecodedTrueHdPcm || tunnelingDisabledForAudioRecovery
   private var currentTunneledPlayback: Boolean = false
   private var lastSeekable: Boolean? = null
+
+  // Seek state: suppresses transient onIsPlayingChanged events during seeks.
+  // ExoPlayer fires isPlaying=false (enters buffering) then isPlaying=true
+  // (ready) on every seek, which causes rapid pause/play events that trigger
+  // Plex webhooks and home-automation actions (e.g. lights toggling).
+  private var isSeeking = false
 
   @Volatile private var disposing: Boolean = false
   private var pendingStartPositionMs: Long = 0L
@@ -298,23 +313,6 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
     }
   }
 
-  private fun configureSubtitleOverlaySurface() {
-    subtitleView?.post {
-      val count = subtitleView?.childCount ?: 0
-      for (i in 0 until count) {
-        val child = subtitleView?.getChildAt(i)
-        if (child is SurfaceView) {
-          child.setZOrderOnTop(false)
-          child.setZOrderMediaOverlay(true)
-          child.holder.setFormat(PixelFormat.TRANSLUCENT)
-          FlutterOverlayHelper.applyCompositionOrder(child, -1)
-        } else if (child is TextureView) {
-          child.isOpaque = false
-        }
-      }
-    }
-  }
-
   // DV conversion state
   private var dvMode: DvConversionMode = DvConversionMode.DISABLED
   private var debugDvModeOverride: DvConversionMode? = null
@@ -406,9 +404,9 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
       videoAspectContainer!!.addView(surfaceView)
       surfaceContainer!!.addView(videoAspectContainer)
 
-      // Create SubtitleView - added to surfaceContainer above video
-      // With OVERLAY_OPEN_GL mode, libass-android adds AssSubtitleTextureView as a child
-      // which renders ASS subtitles with full styling using GPU texture composition
+      // Create SubtitleView - added to surfaceContainer above video. Hosts only
+      // the built-in CanvasSubtitleOutput for non-ASS text cues; the ASS overlay
+      // lives inside videoAspectContainer so it tracks the video rect.
       subtitleView = SubtitleView(activity).apply {
         layoutParams = FrameLayout.LayoutParams(
           FrameLayout.LayoutParams.MATCH_PARENT,
@@ -466,6 +464,7 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
       // Use DefaultRenderersFactory with FFmpeg fallback for unsupported or blocked audio codecs.
       val renderersFactory = PlezyRenderersFactory(activity).apply {
         audioDiagnosticsLogger = { level, prefix, message -> emitLog(level, prefix, message) }
+        videoDiagnosticsLogger = { level, prefix, message -> emitLog(level, prefix, message) }
         shouldBlockDirectAudioOutput = { format -> this@ExoPlayerCore.shouldBlockDirectAudioOutput(format, "sink support") }
         onAudioCapabilitiesChanged = { updateAudioDecoderPolicy("audio capabilities changed") }
         setEnableDecoderFallback(true)
@@ -496,12 +495,7 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
         .setTsExtractorTimestampSearchBytes(TS_TIMESTAMP_SEARCH_PACKETS * TsExtractor.TS_PACKET_SIZE)
 
       // Inline buildWithAssSupport to retain AssHandler reference for font scale control.
-      // OVERLAY_OPEN_GL uses TextureView which follows normal View hierarchy z-ordering,
-      // preventing hardware overlay promotion issues on devices like Nvidia Shield.
-      Log.d(TAG, "SubtitleView childCount before ASS setup: ${subtitleView?.childCount}")
-
-      val renderType = AssRenderType.OVERLAY_OPEN_GL
-      val handler = AssHandler(renderType)
+      val handler = AssHandler()
       assHandler = handler
 
       val assParserFactory = AssSubtitleParserFactory(handler)
@@ -589,22 +583,28 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
         .setRenderersFactory(wrappedRenderersFactory)
         .build()
 
-      // Add ASS overlay view to SubtitleView for OVERLAY modes.
-      // We use AssSubtitleSurfaceView directly (not AssSubtitleView) so we get a
-      // SurfaceFlinger-layer-backed overlay that eglPresentationTimeANDROID can
-      // vsync-pin. Z-order: video SurfaceView (-2) < this MediaOverlay-flagged
+      // Add ASS overlay view to the full-screen surfaceContainer (NOT the zoom-scaled
+      // videoAspectContainer): the libass frame = screen, and mpv-style ass_set_margins
+      // describe where the video dst rect sits inside it (negative when zoomed past the
+      // edges) — see updateAssMargins(). Non-positioned dialogue can then be forced
+      // on-screen (sub-ass-force-margins) while positioned/typeset events stay glued to
+      // the video rect, matching mpv. Also keeps the subtitle surface unscaled (crisp
+      // text, no per-gesture geometry churn).
+      // AssSubtitleSurfaceView gives us a SurfaceFlinger-layer-backed overlay that
+      // eglPresentationTimeANDROID can vsync-pin to the video frame.
+      // Z-order: video SurfaceView (-2) < this MediaOverlay-flagged
       // SurfaceView (-1) < parent canvas < Flutter SurfaceView (+1) in the window.
-      //
-      // Inserted at child index 0 so the SurfaceView's transparent punch runs BEFORE
-      // SubtitleView's built-in CanvasSubtitleOutput child renders non-ASS cues.
-      // Appending would punch away already-drawn SRT/VTT text.
-      var assSubtitleSurfaceView: AssSubtitleSurfaceView? = null
-      subtitleView?.let { sv ->
-        val assView = AssSubtitleSurfaceView(sv.context, handler)
-        assSubtitleSurfaceView = assView
-        sv.addView(
+      // Inserted before subtitleView so both punches run before SRT/VTT cues draw
+      // on the parent canvas.
+      surfaceContainer?.let { container ->
+        val assView = AssSubtitleSurfaceView(container.context, handler)
+        assSubtitleView = assView
+        // Pre-36 sublayer is already set by the view's own setZOrderMediaOverlay(true).
+        FlutterOverlayHelper.applyCompositionOrder(assView, -1)
+        val subtitleIndex = container.indexOfChild(subtitleView)
+        container.addView(
           assView,
-          0,
+          if (subtitleIndex >= 0) subtitleIndex else container.childCount,
           FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,
             FrameLayout.LayoutParams.MATCH_PARENT
@@ -641,7 +641,19 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
       exoPlayer!!.addAnalyticsListener(decoderHangListener)
       exoPlayer!!.setVideoFrameMetadataListener { presentationTimeUs, releaseTimeNs, _, _ ->
         // ASS bypasses Media3's text renderer, so apply sub-delay before libass renders.
-        assSubtitleSurfaceView?.requestRender(presentationTimeUs - subtitleDelayUs.get(), releaseTimeNs)
+        assSubtitleView?.requestRender(presentationTimeUs - subtitleDelayUs.get(), releaseTimeNs)
+        if (ASS_FRAME_LOGS) {
+          // Reference stream for subtitle-lag diagnosis: the video frame ExoPlayer
+          // is releasing right now and how far ahead of its vsync we are. Subtitle
+          // "render pts=" lines lagging these pts values = pipeline behind;
+          // budgetMs far from ~10-50 = release-time clock-domain trouble.
+          val budgetMs = (releaseTimeNs - System.nanoTime()) / 1_000_000
+          Log.d(
+            "AssFrameCb",
+            "video pts=${presentationTimeUs / 1000}ms budgetMs=$budgetMs" +
+              (subtitleDelayUs.get().takeIf { it != 0L }?.let { " subDelayMs=${it / 1000}" } ?: "")
+          )
+        }
         val count = fpsTimestampCount
         if (count < FPS_SAMPLE_COUNT) {
           fpsTimestamps[count] = presentationTimeUs
@@ -653,9 +665,6 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
         }
       }
       surfaceView?.let { exoPlayer!!.setVideoSurfaceView(it) }
-
-      Log.d(TAG, "SubtitleView childCount after ASS setup: ${subtitleView?.childCount}")
-      configureSubtitleOverlaySurface()
 
       // Debug: Log SubtitleView child hierarchy
       subtitleView?.post {
@@ -758,7 +767,7 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
   // Player.Listener
 
   override fun onCues(cueGroup: CueGroup) {
-    // With OVERLAY_CANVAS mode, ASS subtitles are rendered directly by AssSubtitleView
+    // ASS subtitles are rendered by the libass overlay surface.
     // This callback is for non-ASS subtitles (SRT, VTT, etc.)
     val incoming = cueGroup.cues
     lastSubtitleCues = incoming
@@ -842,8 +851,14 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
   }
 
   override fun onIsPlayingChanged(isPlaying: Boolean) {
-    Log.d(TAG, "onIsPlayingChanged: $isPlaying")
+    Log.d(TAG, "onIsPlayingChanged: $isPlaying (seeking=$isSeeking)")
     if (isPlaying) pendingPlayWhenReady = null
+    if (isSeeking) {
+      // Suppress the transient pause/play during a seek. The flag is cleared
+      // in onPlaybackStateChanged(READY) which fires before this callback
+      // when the seek completes, so the final isPlaying=true emits normally.
+      return
+    }
     delegate?.onPropertyChange("pause", !isPlaying)
   }
 
@@ -863,6 +878,10 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
         delegate?.onPropertyChange("paused-for-cache", true)
       }
       Player.STATE_READY -> {
+        // Seek is complete — clear the flag so the subsequent
+        // onIsPlayingChanged(true) emits the real playing state.
+        isSeeking = false
+
         // Restore start position if it was lost during track reselection
         // (e.g. tunneling state change in onTracksChanged triggers renderer teardown)
         if (pendingStartPositionMs > 0L) {
@@ -940,6 +959,7 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
 
     evaluateAudioCodecForTunneling()
     evaluateVideoCodecForTunneling()
+    evaluateAssSubtitlesForTunneling(tracks)
     updateTunnelingState("tracks changed")
     emitTrackList()
   }
@@ -1252,6 +1272,7 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
       videoAspectContainer?.setAspectRatio(videoAspect)
     }
     updateSubtitleViewSize(videoWidth, videoHeight, pixelRatio)
+    updateAssMargins()
   }
 
   private fun updateSubtitleViewSize(videoWidth: Int, videoHeight: Int, pixelRatio: Float) {
@@ -1264,7 +1285,9 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
     val containerHeight = contentView.height
     if (containerWidth == 0 || containerHeight == 0) return
 
-    // In cover/stretch/zoomed-in modes subtitles stay at container size so they
+    // Sizes the non-ASS SubtitleView only (the ASS overlay is screen-sized and
+    // tracks the video rect via libass margins — see updateAssMargins()).
+    // In cover/stretch/zoomed-in modes text cues stay at container size so they
     // never get cropped. In letterbox mode they follow the visible video rect.
     val isLetterbox = videoAspectContainer?.resizeMode == AspectRatioFrameLayout.RESIZE_MODE_FIT
     val (subWidth, subHeight) = if (isLetterbox) {
@@ -1289,10 +1312,97 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
     }
 
     activity.runOnUiThread {
+      // Skip when already at the target size: setLayoutParams always schedules a
+      // layout pass, and this runs from the global-layout listener — re-applying
+      // equal params would keep the UI thread laying out every frame (#1261).
+      val current = subtitle.layoutParams as? FrameLayout.LayoutParams
+      if (current != null &&
+        current.width == subWidth &&
+        current.height == subHeight &&
+        current.gravity == Gravity.CENTER
+      ) {
+        return@runOnUiThread
+      }
       subtitle.layoutParams = FrameLayout.LayoutParams(subWidth, subHeight).apply {
         gravity = Gravity.CENTER
       }
-      subtitle.requestLayout()
+    }
+  }
+
+  // Pushes mpv-style libass margins: the offsets of the video dst rect within the
+  // full-screen container (= the libass frame). Negative when the video extends past
+  // the screen (cover mode, zoom > 1) — libass supports that explicitly. Pure math +
+  // a native setter (no view mutation), so it is safe to run per layout pass and per
+  // pinch-zoom tick (#1261 no-churn invariant).
+  private fun updateAssMargins() {
+    if (disposing) return
+    val handler = assHandler ?: return
+    val vs = lastVideoSize ?: return
+    if (vs.width == 0 || vs.height == 0) return
+
+    activity.runOnUiThread {
+      if (disposing) return@runOnUiThread
+      val containerWidth = surfaceContainer?.width ?: 0
+      val containerHeight = surfaceContainer?.height ?: 0
+      if (containerWidth == 0 || containerHeight == 0) return@runOnUiThread
+
+      val videoAspect = (vs.width * vs.pixelWidthHeightRatio) / vs.height
+      val containerAspect = containerWidth.toFloat() / containerHeight
+      val resizeMode = videoAspectContainer?.resizeMode ?: AspectRatioFrameLayout.RESIZE_MODE_FIT
+
+      // Mirror AspectRatioFrameLayout.onMeasure: aspect mismatches <= 1% are
+      // absorbed by stretching to the container instead of resizing.
+      val (baseWidth, baseHeight) = if (kotlin.math.abs(videoAspect / containerAspect - 1f) <= 0.01f) {
+        containerWidth.toFloat() to containerHeight.toFloat()
+      } else {
+        when (resizeMode) {
+          // Cover: scale up to fill the container, cropping the overflow
+          AspectRatioFrameLayout.RESIZE_MODE_ZOOM ->
+            if (videoAspect > containerAspect) {
+              containerHeight * videoAspect to containerHeight.toFloat()
+            } else {
+              containerWidth.toFloat() to containerWidth / videoAspect
+            }
+          // Stretch: video fills the container, aspect overridden
+          AspectRatioFrameLayout.RESIZE_MODE_FILL ->
+            containerWidth.toFloat() to containerHeight.toFloat()
+          // Fit: letterbox within the container
+          else ->
+            if (videoAspect > containerAspect) {
+              containerWidth.toFloat() to containerWidth / videoAspect
+            } else {
+              containerHeight * videoAspect to containerHeight.toFloat()
+            }
+        }
+      }
+
+      // videoAspectContainer is centered and zoom-scaled about its center.
+      val videoWidth = Math.round(baseWidth * videoZoomScale)
+      val videoHeight = Math.round(baseHeight * videoZoomScale)
+      val left = (containerWidth - videoWidth) / 2
+      val top = (containerHeight - videoHeight) / 2
+      val right = containerWidth - videoWidth - left
+      val bottom = containerHeight - videoHeight - top
+
+      val margins = intArrayOf(top, bottom, left, right)
+      if (lastAssMargins?.contentEquals(margins) == true) return@runOnUiThread
+      lastAssMargins = margins
+      handler.setMargins(top, bottom, left, right)
+      // Repaint at the current position so changes are visible while paused; during
+      // playback the next video frame's render supersedes it (latest-wins).
+      assSubtitleView?.invalidateSubtitles()
+    }
+  }
+
+  // mpv's sub-ass-force-margins, live-applied from the Dart-managed property: lay out
+  // non-positioned ASS events against the visible screen instead of the video rect.
+  fun setAssForceMargins(force: Boolean) {
+    if (disposing) return
+    activity.runOnUiThread {
+      if (disposing || assForceMargins == force) return@runOnUiThread
+      assForceMargins = force
+      assHandler?.setUseMargins(force)
+      assSubtitleView?.invalidateSubtitles()
     }
   }
 
@@ -1304,13 +1414,17 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
 
   fun setBoxFitMode(mode: Int) {
     if (disposing) return
+    val resizeMode = boxFitModeToResizeMode(mode.coerceIn(0, 2))
     activity.runOnUiThread {
-      videoAspectContainer?.resizeMode = boxFitModeToResizeMode(mode.coerceIn(0, 2))
+      val container = videoAspectContainer ?: return@runOnUiThread
+      if (container.resizeMode == resizeMode) return@runOnUiThread
+      container.resizeMode = resizeMode
       lastVideoSize?.let { vs ->
         if (vs.width > 0 && vs.height > 0) {
           updateSubtitleViewSize(vs.width, vs.height, vs.pixelWidthHeightRatio)
         }
       }
+      updateAssMargins()
     }
   }
 
@@ -1318,6 +1432,7 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
     if (disposing) return
     val clamped = scale.coerceIn(0.5, 2.0).toFloat()
     activity.runOnUiThread {
+      if (clamped == videoZoomScale) return@runOnUiThread
       videoZoomScale = clamped
       videoAspectContainer?.scaleX = clamped
       videoAspectContainer?.scaleY = clamped
@@ -1326,6 +1441,7 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
           updateSubtitleViewSize(vs.width, vs.height, vs.pixelWidthHeightRatio)
         }
       }
+      updateAssMargins()
     }
   }
 
@@ -1979,6 +2095,31 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
     applyTrackSelectorPolicy(reason = reason, forceSelector = forceSelector)
   }
 
+  /** True when [format] is an ASS/SSA subtitle track (rendered by libass). */
+  private fun isAssSubtitleFormat(format: Format): Boolean =
+    format.sampleMimeType == MimeTypes.TEXT_SSA || format.codecs == MimeTypes.TEXT_SSA
+
+  /** Sets the ASS-subtitles tunneling block; returns true when the flag changed. */
+  private fun updateAssSubtitlesForTunneling(assActive: Boolean): Boolean {
+    if (assActive == tunnelingDisabledForAssSubtitles) return false
+    tunnelingDisabledForAssSubtitles = assActive
+    emitLog(
+      "info",
+      "tunneling",
+      if (assActive) "ASS subtitle track selected: tunneling DISABLED (frame metadata required for libass)"
+      else "ASS subtitle track deselected: tunneling unblocked"
+    )
+    return true
+  }
+
+  private fun evaluateAssSubtitlesForTunneling(tracks: Tracks) {
+    val assSelected = tracks.groups.any { group ->
+      group.type == C.TRACK_TYPE_TEXT && group.isSelected &&
+        (0 until group.length).any { isAssSubtitleFormat(group.getTrackFormat(it)) }
+    }
+    updateAssSubtitlesForTunneling(assSelected)
+  }
+
   private fun applyTrackSelectorPolicy(
     reason: String,
     forceSelector: Boolean = false,
@@ -2027,7 +2168,8 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
   private fun calculateTunnelingEnabled(): Boolean? {
     val player = exoPlayer ?: return null
     val audioDelayActive = (renderersFactory?.audioDelayUs?.get() ?: 0L) != 0L
-    return tunnelingUserEnabled && (player.playbackParameters.speed == 1f) && !tunnelingDisabledForCodec && !audioDelayActive
+    return tunnelingUserEnabled && (player.playbackParameters.speed == 1f) && !tunnelingDisabledForCodec &&
+      !tunnelingDisabledForAssSubtitles && !audioDelayActive
   }
 
   private fun updateCurrentTunnelingState(reason: String, shouldTunnel: Boolean): Boolean {
@@ -2035,7 +2177,7 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
     currentTunneledPlayback = shouldTunnel
     val speed = exoPlayer?.playbackParameters?.speed ?: 1f
     val audioDelayActive = (renderersFactory?.audioDelayUs?.get() ?: 0L) != 0L
-    emitLog("info", "tunneling", "Toggling tunneling=$shouldTunnel (reason=$reason, user=$tunnelingUserEnabled, speed=$speed, audioCodecDisabled=$tunnelingDisabledForAudioCodec, videoCodecDisabled=$tunnelingDisabledForVideoCodec, decodedTrueHdPcmDisabled=$tunnelingDisabledForDecodedTrueHdPcm, audioRecoveryDisabled=$tunnelingDisabledForAudioRecovery, audioDelay=$audioDelayActive)")
+    emitLog("info", "tunneling", "Toggling tunneling=$shouldTunnel (reason=$reason, user=$tunnelingUserEnabled, speed=$speed, audioCodecDisabled=$tunnelingDisabledForAudioCodec, videoCodecDisabled=$tunnelingDisabledForVideoCodec, decodedTrueHdPcmDisabled=$tunnelingDisabledForDecodedTrueHdPcm, audioRecoveryDisabled=$tunnelingDisabledForAudioRecovery, assSubtitlesDisabled=$tunnelingDisabledForAssSubtitles, audioDelay=$audioDelayActive)")
     return true
   }
 
@@ -2428,6 +2570,7 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
     tunnelingDisabledForVideoCodec = false
     tunnelingDisabledForDecodedTrueHdPcm = false
     tunnelingDisabledForAudioRecovery = false
+    tunnelingDisabledForAssSubtitles = false
     currentTunneledPlayback = false
     pendingStartPositionMs = startPositionMs
     pendingPlayWhenReady = autoPlay
@@ -2569,6 +2712,7 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
 
   fun seekTo(positionMs: Long) {
     val player = exoPlayer ?: return
+    isSeeking = true
     val durationMs = player.duration
     val clampedPositionMs = if (!currentMediaIsLive && durationMs != C.TIME_UNSET && durationMs > 0L) {
       positionMs.coerceIn(0L, durationMs)
@@ -2610,6 +2754,9 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
   fun selectSubtitleTrack(trackId: String?) {
     if (trackId == null || trackId == "no") {
       selectedSubtitleTrackId = "no"
+      // Flip the tunneling block in the same parameters update as the text
+      // disable so the renderer re-initializes once, not twice.
+      updateAssSubtitlesForTunneling(false)
       applyTrackSelectorPolicy(
         reason = "subtitle disabled",
         textDisabled = true
@@ -2620,6 +2767,7 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
 
     val trackGroup = subtitleTrackGroupMap[trackId] ?: return
     selectedSubtitleTrackId = trackId
+    updateAssSubtitlesForTunneling(isAssSubtitleFormat(trackGroup.getFormat(0)))
     applyTrackSelectorPolicy(
       reason = "subtitle track selected",
       textOverride = TrackSelectionOverride(trackGroup, 0),
@@ -2903,6 +3051,26 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
       "videoDecoderName" to videoDecoderName,
       "videoDroppedFrames" to player.videoDecoderCounters?.droppedBufferCount,
       "videoRenderedFrames" to player.videoDecoderCounters?.renderedOutputBufferCount,
+      // ASS overlay swap timing (vsync-pinned; late = past the swap-time budget)
+      "subSwapCount" to assSubtitleView?.swapCount,
+      "subLateSwaps" to assSubtitleView?.lateSwapCount,
+      "subMaxLateMs" to assSubtitleView?.maxLateMs,
+      // ASS libass render cost (changed renders rewrite the atlas; histogram
+      // buckets: ≤10/≤25/≤42/≤84/>84 ms)
+      "subRenderCount" to assSubtitleView?.renderCount,
+      "subChangedRenders" to assSubtitleView?.changedRenderCount,
+      "subOverflows" to assSubtitleView?.overflowCount,
+      "subLibassLastMs" to assSubtitleView?.lastLibassMs,
+      "subLibassMaxMs" to assSubtitleView?.maxLibassMs,
+      "subLibassHist" to assSubtitleView?.libassMsHistogram,
+      // ASS render-ahead: hits = served from a pre-rendered frame (GL-only path);
+      // minLead ≥ 0 means changed content reached the queue before the video
+      // frame's vsync — the frame-perfection signal.
+      "subSpecHits" to assSubtitleView?.specHits,
+      "subSpecMisses" to assSubtitleView?.specMisses,
+      "subSpecSkips" to assSubtitleView?.specSkips,
+      "subPrefetches" to assSubtitleView?.prefetchCount,
+      "subMinLeadMs" to assSubtitleView?.minLeadChangedMs,
       // Color info
       "colorSpace" to videoFormat?.colorInfo?.colorSpace,
       "colorRange" to videoFormat?.colorInfo?.colorRange,
@@ -2997,6 +3165,7 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
     if (tunnelingDisabledForDecodedTrueHdPcm) return "Off (decoded TrueHD PCM)"
     if (tunnelingDisabledForVideoCodec) return "Off (video codec unsupported)"
     if (tunnelingDisabledForAudioCodec) return "Off (no HW audio decoder)"
+    if (tunnelingDisabledForAssSubtitles) return "Off (ASS subtitles active)"
     return "Off"
   }
 
@@ -3041,9 +3210,11 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
     tunnelingDisabledForVideoCodec = false
     tunnelingDisabledForDecodedTrueHdPcm = false
     tunnelingDisabledForAudioRecovery = false
+    tunnelingDisabledForAssSubtitles = false
     currentTunneledPlayback = false
     pendingStartPositionMs = 0L
     pendingPlayWhenReady = null
+    isSeeking = false
     currentMediaIsLive = false
     currentVisible = false
     emitSeekable(false, force = true)
@@ -3075,6 +3246,7 @@ class ExoPlayerCore(private val activity: Activity) : Player.Listener {
     videoAspectContainer = null
     surfaceView = null
     subtitleView = null
+    assSubtitleView = null
 
     // Remove layout listener synchronously
     overlayLayoutListener?.let { listener ->

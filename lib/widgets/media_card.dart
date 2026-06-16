@@ -8,15 +8,15 @@ import 'package:provider/provider.dart';
 import '../focus/input_mode_tracker.dart';
 import '../media/media_item.dart';
 import '../media/media_item_types.dart';
+import '../media/season_title.dart';
 import '../media/media_kind.dart';
 import '../media/media_playlist.dart';
 import '../mixins/context_menu_tap_mixin.dart';
 import '../providers/download_provider.dart';
-import '../providers/watch_state_overlay_provider.dart';
+import '../providers/watch_state_store.dart';
 import '../services/download_storage_service.dart';
 import '../services/settings_service.dart';
 import 'settings_builder.dart';
-import '../screens/media_detail_screen.dart';
 import '../utils/content_utils.dart';
 import '../utils/provider_extensions.dart';
 import '../utils/formatters.dart';
@@ -94,25 +94,12 @@ class MediaCardState extends State<MediaCard> with ContextMenuTapMixin<MediaCard
 
   Object _effectiveItem(BuildContext context) {
     final item = widget.item;
-    if (item is! MediaItem) return item;
-    try {
-      final patch = context.select<WatchStateOverlayProvider, WatchStateOverlayPatch?>(
-        (provider) => provider.patchForGlobalKey(item.globalKey),
-      );
-      return WatchStateOverlayProvider.applyPatch(item, patch);
-    } on ProviderNotFoundException {
-      return item;
-    }
+    return item is MediaItem ? context.withFreshWatchState(item) : item;
   }
 
   Object _effectiveItemForAction(BuildContext context) {
     final item = widget.item;
-    if (item is! MediaItem) return item;
-    try {
-      return context.read<WatchStateOverlayProvider>().apply(item);
-    } on ProviderNotFoundException {
-      return item;
-    }
+    return item is MediaItem ? context.readFreshWatchState(item) : item;
   }
 
   String _buildSemanticLabel(Object item) {
@@ -133,7 +120,7 @@ class MediaCardState extends State<MediaCard> with ContextMenuTapMixin<MediaCard
         final episodeInfo = item.parentIndex != null && item.index != null ? 'S${item.parentIndex} E${item.index}' : '';
         baseLabel = t.accessibility.mediaCardEpisode(title: item.displayTitle, episodeInfo: episodeInfo);
       case MediaKind.season:
-        final seasonInfo = item.parentIndex != null ? 'Season ${item.parentIndex}' : '';
+        final seasonInfo = localizedSeasonLabel(title: item.title, index: item.index);
         baseLabel = t.accessibility.mediaCardSeason(title: item.displayTitle, seasonInfo: seasonInfo);
       case MediaKind.movie:
         baseLabel = t.accessibility.mediaCardMovie(title: item.displayTitle);
@@ -226,7 +213,7 @@ class MediaCardState extends State<MediaCard> with ContextMenuTapMixin<MediaCard
     } else if (widget.forceGridMode) {
       viewMode = ViewMode.grid;
     } else {
-      viewMode = SettingsService.instanceOrNull!.read(SettingsService.viewMode);
+      viewMode = SettingsService.instance.read(SettingsService.viewMode);
     }
 
     final semanticLabel = _buildSemanticLabel(item);
@@ -242,7 +229,7 @@ class MediaCardState extends State<MediaCard> with ContextMenuTapMixin<MediaCard
             onLongPress: showContextMenuFromTap,
             onSecondaryTapDown: storeTapPosition,
             onSecondaryTap: showContextMenuFromTap,
-            density: SettingsService.instanceOrNull!.read(SettingsService.libraryDensity),
+            density: SettingsService.instance.read(SettingsService.libraryDensity),
             isOffline: widget.isOffline,
             localPosterPath: localPosterPath,
             showServerName: widget.showServerName,
@@ -266,19 +253,28 @@ class MediaCardState extends State<MediaCard> with ContextMenuTapMixin<MediaCard
 
   /// Grid layout — inlined from former _MediaCardGrid, _PosterOverlay, and
   /// flattened Column. Semantics removed (InkWell provides button semantics).
+  ///
+  /// MergeSemantics collapses the card (texts, progress, button) into ONE
+  /// semantics node. Browse rails/grids show dozens of cards and the
+  /// platform-driven semantics pass runs every frame on TV boxes with an
+  /// accessibility service active — node count is the cost driver. The card
+  /// has a single action (tap; long-press menu), so merging is safe and gives
+  /// screen readers one coherent announcement per card.
   Widget _buildGridCard(BuildContext context, Object item, String? localPosterPath) {
     if (widget.fullBleedImage) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          final cardWidth = widget.width ?? (constraints.hasBoundedWidth ? constraints.maxWidth : null);
-          final cardHeight = widget.height ?? (constraints.hasBoundedHeight ? constraints.maxHeight : null);
-          if (cardHeight == null) return _buildStandardGridCard(context, item, localPosterPath);
-          return _buildFullBleedGridCard(context, item, localPosterPath, width: cardWidth, height: cardHeight);
-        },
+      return MergeSemantics(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final cardWidth = widget.width ?? (constraints.hasBoundedWidth ? constraints.maxWidth : null);
+            final cardHeight = widget.height ?? (constraints.hasBoundedHeight ? constraints.maxHeight : null);
+            if (cardHeight == null) return _buildStandardGridCard(context, item, localPosterPath);
+            return _buildFullBleedGridCard(context, item, localPosterPath, width: cardWidth, height: cardHeight);
+          },
+        ),
       );
     }
 
-    return _buildStandardGridCard(context, item, localPosterPath);
+    return MergeSemantics(child: _buildStandardGridCard(context, item, localPosterPath));
   }
 
   Widget _buildFullBleedGridCard(
@@ -394,7 +390,7 @@ class MediaCardState extends State<MediaCard> with ContextMenuTapMixin<MediaCard
                 _ClickableText(
                   text: item.displayTitle,
                   style: const TextStyle(fontWeight: .w600, fontSize: 13, height: 1.1),
-                  onTap: () => _navigateToDetail(context, item, isOffline: widget.isOffline),
+                  onTap: () => _navigateToFocusedDetail(context, item, isOffline: widget.isOffline),
                 )
               else
                 Text(
@@ -449,7 +445,7 @@ class _MediaCardList extends StatelessWidget {
   bool _usesWideAspectRatio() {
     if (item is! MediaItem) return false;
     final EpisodePosterMode mode =
-        episodePosterModeOverride ?? SettingsService.instanceOrNull!.read(SettingsService.episodePosterMode);
+        episodePosterModeOverride ?? SettingsService.instance.read(SettingsService.episodePosterMode);
     return (item as MediaItem).usesWideAspectRatio(mode);
   }
 
@@ -536,7 +532,7 @@ class _MediaCardList extends StatelessWidget {
       final mi = item as MediaItem;
 
       if (mi.parentIndex != null && mi.index != null) {
-        final showEp = SettingsService.instanceOrNull!.read(SettingsService.showEpisodeNumberOnCards);
+        final showEp = SettingsService.instance.read(SettingsService.showEpisodeNumberOnCards);
         return showEp ? 'S${mi.parentIndex} E${mi.index}' : 'S${mi.parentIndex}';
       }
 
@@ -571,14 +567,14 @@ class _MediaCardList extends StatelessWidget {
       fontSize: _subtitleFontSize,
     );
     final episodeTitle = mi.displaySubtitle ?? mi.displayTitle;
-    final showEp = SettingsService.instanceOrNull!.read(SettingsService.showEpisodeNumberOnCards);
+    final showEp = SettingsService.instance.read(SettingsService.showEpisodeNumberOnCards);
     final episodeNum = (showEp && mi.index != null) ? ' E${mi.index}' : '';
     return Row(
       children: [
         _ClickableText(
           text: 'S${mi.parentIndex}',
           style: style,
-          onTap: () => _navigateToSeason(context, mi, isOffline: isOffline),
+          onTap: () => _navigateToFocusedDetail(context, mi, isOffline: isOffline),
         ),
         Text('$episodeNum · ', style: style),
         Expanded(
@@ -636,7 +632,7 @@ class _MediaCardList extends StatelessWidget {
                     _ClickableText(
                       text: (item as MediaItem).displayTitle,
                       style: TextStyle(fontWeight: .w600, fontSize: _titleFontSize, height: 1.2),
-                      onTap: () => _navigateToDetail(context, item as MediaItem, isOffline: isOffline),
+                      onTap: () => _navigateToFocusedDetail(context, item as MediaItem, isOffline: isOffline),
                     )
                   else
                     Text(
@@ -678,7 +674,7 @@ class _MediaCardList extends StatelessWidget {
                     const SizedBox(height: 4),
                   ],
                   if (!(item is MediaItem &&
-                          SettingsService.instanceOrNull!.read(SettingsService.hideSpoilers) &&
+                          SettingsService.instance.read(SettingsService.hideSpoilers) &&
                           (item as MediaItem).shouldHideSpoiler) &&
                       _summary() != null) ...[
                     Text(
@@ -761,8 +757,8 @@ Widget _buildPosterImage(
     );
   } else if (item is MediaItem) {
     final EpisodePosterMode episodePosterMode =
-        episodePosterModeOverride ?? SettingsService.instanceOrNull!.read(SettingsService.episodePosterMode);
-    final hideSpoilers = SettingsService.instanceOrNull!.read(SettingsService.hideSpoilers);
+        episodePosterModeOverride ?? SettingsService.instance.read(SettingsService.episodePosterMode);
+    final hideSpoilers = SettingsService.instance.read(SettingsService.hideSpoilers);
     final shouldBlur =
         hideSpoilers && item.shouldHideSpoiler && episodePosterMode == EpisodePosterMode.episodeThumbnail;
     final primaryPosterUrl = item.posterThumb(mode: episodePosterMode, mixedHubContext: mixedHubContext);
@@ -863,7 +859,7 @@ class _MediaCardHelpers {
     // For episodes, show "S# · Episode Title" with clickable season link
     if (mi.isEpisode && mi.parentIndex != null) {
       final episodeTitle = mi.displaySubtitle ?? mi.displayTitle;
-      final showEp = SettingsService.instanceOrNull!.read(SettingsService.showEpisodeNumberOnCards);
+      final showEp = SettingsService.instance.read(SettingsService.showEpisodeNumberOnCards);
       final episodeSuffix = (showEp && mi.index != null) ? ' E${mi.index}' : '';
       if (mi.parentId != null) {
         return Row(
@@ -871,7 +867,7 @@ class _MediaCardHelpers {
             _ClickableText(
               text: 'S${mi.parentIndex}',
               style: subtitleStyle,
-              onTap: () => _navigateToSeason(context, mi, isOffline: isOffline),
+              onTap: () => _navigateToFocusedDetail(context, mi, isOffline: isOffline),
             ),
             Text('$episodeSuffix · ', style: subtitleStyle),
             Expanded(
@@ -908,7 +904,7 @@ class _MediaCardHelpers {
 
   /// Builds watch progress overlay (checkmark for watched, progress bar for in-progress)
   static Widget buildWatchProgress(BuildContext context, MediaItem mi) {
-    final showUnwatchedCount = SettingsService.instanceOrNull!.read(SettingsService.showUnwatchedCount);
+    final showUnwatchedCount = SettingsService.instance.read(SettingsService.showUnwatchedCount);
 
     final hasActiveProgress =
         mi.viewOffsetMs != null && mi.durationMs != null && mi.viewOffsetMs! > 0 && mi.viewOffsetMs! < mi.durationMs!;
@@ -993,83 +989,8 @@ bool _hasClickableTitle(MediaItem mi) {
   return false;
 }
 
-void _navigateToSeason(BuildContext context, MediaItem episode, {bool isOffline = false}) {
-  if (episode.grandparentId != null) {
-    final showStub = MediaItem(
-      id: episode.grandparentId!,
-      backend: episode.backend,
-      kind: MediaKind.show,
-      title: episode.grandparentTitle ?? episode.displayTitle,
-      thumbPath: episode.grandparentThumbPath,
-      artPath: episode.grandparentArtPath,
-      libraryId: episode.libraryId,
-      libraryTitle: episode.libraryTitle,
-      serverId: episode.serverId,
-      serverName: episode.serverName,
-    );
-    Navigator.push(
-      context,
-      mediaDetailRoute(metadata: showStub, isOffline: isOffline, initialSeasonIndex: episode.parentIndex),
-    );
-  } else if (episode.parentId != null) {
-    // Fallback: navigate to season directly if no grandparent
-    final seasonStub = MediaItem(
-      id: episode.parentId!,
-      backend: episode.backend,
-      kind: MediaKind.season,
-      title: episode.parentTitle ?? 'Season ${episode.parentIndex ?? ''}',
-      index: episode.parentIndex,
-      parentId: episode.grandparentId,
-      thumbPath: episode.parentThumbPath,
-      libraryId: episode.libraryId,
-      libraryTitle: episode.libraryTitle,
-      serverId: episode.serverId,
-      serverName: episode.serverName,
-    );
-    Navigator.push(context, mediaDetailRoute(metadata: seasonStub, isOffline: isOffline));
-  }
-}
-
-/// Navigate to the detail screen for a media item.
-/// For episodes/seasons: navigates to the parent show with season pre-selected.
-/// For movies and other types: navigates to the item's own detail page.
-void _navigateToDetail(BuildContext context, MediaItem mi, {bool isOffline = false}) {
-  MediaItem target = mi;
-  int? initialSeasonIndex;
-
-  if (mi.isEpisode && mi.grandparentId != null) {
-    target = MediaItem(
-      id: mi.grandparentId!,
-      backend: mi.backend,
-      kind: MediaKind.show,
-      title: mi.grandparentTitle ?? mi.displayTitle,
-      thumbPath: mi.grandparentThumbPath,
-      artPath: mi.grandparentArtPath,
-      libraryId: mi.libraryId,
-      libraryTitle: mi.libraryTitle,
-      serverId: mi.serverId,
-      serverName: mi.serverName,
-    );
-  } else if (mi.isSeason && mi.parentId != null) {
-    initialSeasonIndex = mi.index;
-    target = MediaItem(
-      id: mi.parentId!,
-      backend: mi.backend,
-      kind: MediaKind.show,
-      title: mi.grandparentTitle ?? mi.parentTitle ?? mi.displayTitle,
-      thumbPath: mi.grandparentThumbPath ?? mi.parentThumbPath,
-      artPath: mi.grandparentArtPath,
-      libraryId: mi.libraryId,
-      libraryTitle: mi.libraryTitle,
-      serverId: mi.serverId,
-      serverName: mi.serverName,
-    );
-  }
-
-  Navigator.push(
-    context,
-    mediaDetailRoute(metadata: target, isOffline: isOffline, initialSeasonIndex: initialSeasonIndex),
-  );
+void _navigateToFocusedDetail(BuildContext context, MediaItem item, {bool isOffline = false}) {
+  navigateToMediaItemDetails(context, item, isOffline: isOffline);
 }
 
 /// Text widget that shows hover underline + pointer cursor only in pointer mode.

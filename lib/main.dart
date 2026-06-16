@@ -27,6 +27,7 @@ import 'screens/auth_screen.dart';
 import 'screens/profile/pin_entry_dialog.dart';
 import 'screens/profile/profile_switch_screen.dart';
 import 'services/storage_service.dart';
+import 'services/device_performance.dart';
 import 'services/macos_window_service.dart';
 import 'services/native_window_service.dart';
 import 'services/fullscreen_state_manager.dart';
@@ -52,7 +53,7 @@ import 'providers/playback_state_provider.dart';
 import 'providers/download_provider.dart';
 import 'providers/offline_mode_provider.dart';
 import 'providers/offline_watch_provider.dart';
-import 'providers/watch_state_overlay_provider.dart';
+import 'providers/watch_state_store.dart';
 import 'providers/companion_remote_provider.dart';
 import 'providers/shader_provider.dart';
 import 'utils/snackbar_helper.dart';
@@ -177,15 +178,6 @@ Future<void> _bootstrapApp() async {
     await settings.write(SettingsService.cleanedOldImageCache, true);
   }
 
-  // Configure image cache — keep budget modest to leave headroom for Skia decode buffers
-  if (PlatformDetector.isDesktopOS()) {
-    PaintingBinding.instance.imageCache.maximumSize = 1000;
-    PaintingBinding.instance.imageCache.maximumSizeBytes = 150 << 20; // 150MB
-  } else {
-    PaintingBinding.instance.imageCache.maximumSize = 800;
-    PaintingBinding.instance.imageCache.maximumSizeBytes = 100 << 20; // 100MB
-  }
-
   final futures = <Future<void>>[];
 
   if (PlatformDetector.isDesktopOS()) {
@@ -200,6 +192,8 @@ Future<void> _bootstrapApp() async {
   if (Platform.isAndroid || Platform.isIOS) {
     futures.add(TvDetectionService.getInstance(forceTv: settings.read(SettingsService.forceTvMode)));
   }
+  // Visual-effects tier (auto-detects low-end Android; full elsewhere).
+  futures.add(DevicePerformance.getInstance(override: settings.read(SettingsService.visualEffects)));
   if (Platform.isAndroid) {
     PipService();
   }
@@ -207,9 +201,15 @@ Future<void> _bootstrapApp() async {
   // Hook Windows native fullscreen callback (no-op elsewhere).
   NativeWindowService.initialize();
 
-  futures.add(StorageService.getInstance());
+  final storageFuture = StorageService.getInstance();
+  futures.add(storageFuture);
 
   await Future.wait(futures);
+  final storage = await storageFuture;
+
+  // Configure image cache — keep budget modest to leave headroom for Skia
+  // decode buffers. Runs after the futures so the effects tier is resolved.
+  DevicePerformance.applyImageCacheBudget();
 
   // The PLEX_TOKEN dart-define (screenshot automation) is consumed by
   // [ConnectionBootstrap.seedFromDevTokenDefine] later, when the registry
@@ -224,7 +224,10 @@ Future<void> _bootstrapApp() async {
   if (Platform.isAndroid) {
     renderer = ' [${await const MethodChannel('com.plezy/theme').invokeMethod<String>('getRenderer')}]';
   }
-  appLogger.i('Plezy v${packageInfo.version}+${packageInfo.buildNumber}$commitSuffix$renderer');
+  appLogger.i(
+    'Plezy v${packageInfo.version}+${packageInfo.buildNumber}$commitSuffix$renderer'
+    ' [effects: ${DevicePerformance.describeSync()}]',
+  );
 
   await DownloadStorageService.instance.initialize(settings);
 
@@ -259,7 +262,7 @@ Future<void> _bootstrapApp() async {
     return const ColoredBox(color: Color(0xFF000000));
   };
 
-  runApp(const MainApp());
+  runApp(MainApp(settings: settings, storage: storage));
 }
 
 Breadcrumb? _beforeBreadcrumb(Breadcrumb? breadcrumb, Hint _) {
@@ -425,7 +428,10 @@ Future<String?> _rootPinPrompt(Profile profile, {String? errorMessage}) {
 }
 
 class MainApp extends StatefulWidget {
-  const MainApp({super.key});
+  final SettingsService settings;
+  final StorageService storage;
+
+  const MainApp({super.key, required this.settings, required this.storage});
 
   @override
   State<MainApp> createState() => _MainAppState();
@@ -679,6 +685,8 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
         // Expose AppDatabase + ConnectionRegistry so screens (Settings, Setup)
         // can manage stored Jellyfin/Plex connections without re-creating
         // the registry per-call site.
+        Provider<SettingsService>.value(value: widget.settings),
+        Provider<StorageService>.value(value: widget.storage),
         Provider<AppDatabase>.value(value: _appDatabase),
         Provider<ConnectionRegistry>(create: (_) => ConnectionRegistry(_appDatabase)),
         Provider<ProfileRegistry>(create: (_) => ProfileRegistry(_appDatabase)),
@@ -691,6 +699,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
             final service = PlexHomeService(
               connections: context.read<ConnectionRegistry>(),
               profileConnections: context.read<ProfileConnectionRegistry>(),
+              storage: context.read<StorageService>(),
             );
             unawaited(service.start());
             return service;
@@ -703,6 +712,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
               registry: context.read<ProfileRegistry>(),
               plexHome: context.read<PlexHomeService>(),
               connections: context.read<ConnectionRegistry>(),
+              storage: context.read<StorageService>(),
             );
             unawaited(provider.initialize());
             return provider;
@@ -772,10 +782,10 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
             return provider;
           },
         ),
-        ChangeNotifierProxyProvider2<ActiveProfileProvider, MultiServerProvider, WatchStateOverlayProvider>(
-          create: (_) => WatchStateOverlayProvider(),
+        ChangeNotifierProxyProvider2<ActiveProfileProvider, MultiServerProvider, WatchStateStore>(
+          create: (_) => WatchStateStore(),
           update: (_, activeProfile, multiServer, previous) {
-            final provider = previous ?? WatchStateOverlayProvider();
+            final provider = previous ?? WatchStateStore();
             provider.setActiveProfileId(activeProfile.activeId);
             provider.setActiveClientScopesByServer({
               for (final serverId in multiServer.serverManager.serverIds)
@@ -835,7 +845,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
         ),
         ChangeNotifierProxyProvider2<OfflineWatchSyncService, DownloadProvider, OfflineWatchProvider>(
           create: (context) => OfflineWatchProvider(
-            syncService: _offlineWatchSyncService,
+            syncService: context.read<OfflineWatchSyncService>(),
             downloadProvider: context.read<DownloadProvider>(),
           ),
           update: (_, syncService, downloadProvider, previous) {
@@ -843,9 +853,9 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
           },
         ),
         ChangeNotifierProxyProvider2<ActiveProfileProvider, ConnectionRegistry, UserProfileProvider>(
-          create: (_) => UserProfileProvider(),
+          create: (context) => UserProfileProvider(storageService: context.read<StorageService>()),
           update: (context, activeProfile, connections, previous) {
-            final provider = previous ?? UserProfileProvider();
+            final provider = previous ?? UserProfileProvider(storageService: context.read<StorageService>());
             provider.attach(
               connections: connections,
               activeProfile: activeProfile,
@@ -860,10 +870,13 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
         // session scoping. Hydrated and rebound by `_TrackerProfileBootstrap`.
         ChangeNotifierProvider(create: (context) => TraktAccountProvider()),
         ChangeNotifierProvider(create: (context) => TrackersProvider()),
-        ChangeNotifierProvider(create: (context) => HiddenLibrariesProvider(), lazy: true),
+        ChangeNotifierProvider(
+          create: (context) => HiddenLibrariesProvider(storageService: context.read<StorageService>()),
+          lazy: true,
+        ),
         ChangeNotifierProvider(
           create: (context) {
-            final provider = LibrariesProvider();
+            final provider = LibrariesProvider(storageService: context.read<StorageService>());
             // Reload libraries when a new server comes online. Servers bind in
             // waves on sign-in / profile switch and slow ones reconnect after
             // the initial load; without this they stay missing from the sidebar
@@ -907,7 +920,7 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
                         // Siri Remote select + gamepad A report as
                         // LogicalKeyboardKey.{select,gameButtonA} which aren't
                         // in Flutter's default shortcut set — Material-level
-                        // widgets (PopupMenuItem, showModalBottomSheet actions)
+                        // widgets (menu items, showModalBottomSheet actions)
                         // ignore them. Map both to ActivateIntent so tapping
                         // select on tvOS activates the focused widget.
                         shortcuts: <ShortcutActivator, Intent>{
@@ -1302,13 +1315,26 @@ class _SetupScreenState extends State<SetupScreen> with MountedSetStateMixin {
 
   /// Wire per-server status updates from [MultiServerManager] into the
   /// splash list so the user sees check/cross marks land as the binder
-  /// brings each client online. Best-effort: stops listening when the
-  /// state goes away.
+  /// brings each client online. [MultiServerManager.connectProgressStream]
+  /// fires as each individual server settles; [MultiServerManager.statusStream]
+  /// emits once per connect pass and back-fills anything the progress stream
+  /// missed (e.g. servers torn down by the binder's visibility sweep).
+  /// Best-effort: stops listening when the state goes away.
   StreamSubscription<Map<String, bool>>? _statusSub;
+  StreamSubscription<({String serverId, bool online})>? _connectProgressSub;
 
   void _bindServerStatusListener(ActiveProfileProvider _, MultiServerManager Function() resolveManager) {
     _statusSub?.cancel();
+    _connectProgressSub?.cancel();
     final manager = resolveManager();
+    _connectProgressSub = manager.connectProgressStream.listen((progress) {
+      if (!mounted) return;
+      final existing = _serverStatus[progress.serverId];
+      if (existing == null) return;
+      setState(() {
+        _serverStatus[progress.serverId] = (existing.$1, progress.online);
+      });
+    });
     _statusSub = manager.statusStream.listen((status) {
       if (!mounted) return;
       setState(() {
@@ -1327,6 +1353,7 @@ class _SetupScreenState extends State<SetupScreen> with MountedSetStateMixin {
   @override
   void dispose() {
     _statusSub?.cancel();
+    _connectProgressSub?.cancel();
     super.dispose();
   }
 

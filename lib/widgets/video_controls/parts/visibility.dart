@@ -68,6 +68,7 @@ extension _PlexVideoControlsVisibilityMethods on _PlexVideoControlsState {
 
   void _handlePointerSignal(PointerSignalEvent event) {
     if (event is PointerScrollEvent && _keyboardService != null) {
+      _cancelAutoSkipFromUserInteraction();
       final delta = event.scrollDelta.dy;
       final volume = widget.player.state.volume;
       final maxVol = _keyboardService!.maxVolume.toDouble();
@@ -80,17 +81,11 @@ extension _PlexVideoControlsVisibilityMethods on _PlexVideoControlsState {
 
   /// Show controls in response to pointer activity (mouse/trackpad movement).
   void _showControlsFromPointerActivity() {
-    final handled = widget.chromeController.recordPointerActivity();
-    if (!handled) return;
-
-    // Cancel auto-skip when user moves pointer over the player
-    _cancelAutoSkipTimer();
+    widget.chromeController.recordPointerActivity();
   }
 
   void _toggleControls() {
     widget.chromeController.toggle();
-    // Cancel auto-skip on any tap
-    _cancelAutoSkipTimer();
   }
 
   /// Apply preferred orientations for the given lock state. Wired to
@@ -302,6 +297,9 @@ extension _PlexVideoControlsVisibilityMethods on _PlexVideoControlsState {
   void _requestFocusTarget(PlayerChromeFocusTarget target) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !widget.chromeController.controlsVisible) return;
+      // Never steal focus from an open sheet (same rule as
+      // _reclaimFocusAfterControlsHide).
+      if (OverlaySheetController.maybeOf(context)?.isOpen ?? false) return;
       switch (target) {
         case PlayerChromeFocusTarget.playPause:
           _desktopControlsKey.currentState?.requestPlayPauseFocus();
