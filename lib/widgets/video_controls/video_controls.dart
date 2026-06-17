@@ -359,6 +359,7 @@ class _PlexVideoControlsState extends State<PlexVideoControls>
   bool _showLockIcon = false; // Whether to show the lock overlay icon
   Timer? _lockIconTimer;
   bool get _clickVideoTogglesPlayback => _settings.read(SettingsService.clickVideoTogglesPlayback);
+  bool get _selectShowsOsdTimeline => _settings.read(SettingsService.selectShowsOsdTimeline);
   bool get _showChapterMarkersOnTimeline => _settings.read(SettingsService.showChapterMarkersOnTimeline);
   int _trafficLightVisibilityGeneration = 0;
 
@@ -464,6 +465,7 @@ class _PlexVideoControlsState extends State<PlexVideoControls>
       SettingsService.showPerformanceOverlay,
       SettingsService.autoHidePerformanceOverlay,
       SettingsService.clickVideoTogglesPlayback,
+      SettingsService.selectShowsOsdTimeline,
       SettingsService.showChapterMarkersOnTimeline,
     ]);
     widget.chromeController.addListener(_onChromeChanged);

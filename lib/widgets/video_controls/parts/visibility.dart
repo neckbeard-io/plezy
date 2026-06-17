@@ -16,13 +16,14 @@ extension _PlexVideoControlsVisibilityMethods on _PlexVideoControlsState {
     }
   }
 
-  /// Focus play/pause button if we're in keyboard navigation mode (desktop/TV only)
+  /// Focus the appropriate control if we're in keyboard navigation mode (desktop/TV only).
+  /// Defaults to timeline (progress bar) so the user can immediately seek.
   void _focusPlayPauseIfKeyboardMode() {
     if (!mounted) return;
     if (!_videoPlayerNavigationEnabled) return;
     final isMobile = PlatformDetector.isMobile(context) && !PlatformDetector.isTV();
     if (!isMobile && InputModeTracker.isKeyboardMode(context)) {
-      _desktopControlsKey.currentState?.requestPlayPauseFocus();
+      _desktopControlsKey.currentState?.requestTimelineFocus();
     }
   }
 

@@ -447,6 +447,13 @@ class DesktopVideoControlsState extends State<DesktopVideoControls> {
 
   /// Reset progressive seek state
   void _resetSeekState() {
+    // If a keyboard seek was in progress, finalize it: this commits the
+    // position and — critically — releases the PlayerChromeHold.scrub hold
+    // that _throttledSeek acquires. Without this, the hold stays active and
+    // the controls can never auto-hide or be dismissed with Back.
+    if (_seekDirection != null) {
+      widget.onSeekEnd(widget.player.state.position);
+    }
     _seekDirection = null;
     _seekRepeatCount = 0;
     _keyRepeatThumbnailTimer?.cancel();
@@ -512,6 +519,22 @@ class DesktopVideoControlsState extends State<DesktopVideoControls> {
     if (key == LogicalKeyboardKey.arrowDown) {
       _resetSeekState();
       _playPauseFocusNode.requestFocus();
+      widget.onFocusActivity?.call();
+      return KeyEventResult.handled;
+    }
+
+    // Select/Enter on the seekbar toggles play/pause
+    if (key == LogicalKeyboardKey.select ||
+        key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter ||
+        key == LogicalKeyboardKey.gameButtonA) {
+      if (_canControl) {
+        if (widget.player.state.playing) {
+          widget.player.pause();
+        } else {
+          widget.player.play();
+        }
+      }
       widget.onFocusActivity?.call();
       return KeyEventResult.handled;
     }

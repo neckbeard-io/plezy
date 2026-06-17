@@ -271,11 +271,16 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
       return KeyEventResult.handled;
     }
 
-    // Handle Select/Enter when controls are hidden: pause and show controls.
+    // Handle Select/Enter when controls are hidden.
     // Only intercept if this Focus node itself has primary focus (not a descendant).
     if (_isSelectKey(key) && !_showControls && _focusNode.hasPrimaryFocus) {
-      _playOrPause();
-      _showControlsWithFocus();
+      if (_selectShowsOsdTimeline) {
+        // Plex-style: show OSD with timeline (seek bar) focused, no play/pause toggle
+        _showControlsWithTimelineFocus();
+      } else {
+        _playOrPause();
+        _showControlsWithFocus();
+      }
       return KeyEventResult.handled;
     }
 
