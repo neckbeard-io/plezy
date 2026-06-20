@@ -612,11 +612,11 @@ class TranslationsSettingsEn {
 	/// en: 'Click video to play/pause instead of showing controls.'
 	String get clickVideoTogglesPlaybackDescription => 'Click video to play/pause instead of showing controls.';
 
-	/// en: 'Plex-style OK button'
-	String get selectShowsOsdTimeline => 'Plex-style OK button';
+	/// en: 'Plex-style OSD'
+	String get selectShowsOsdTimeline => 'Plex-style OSD';
 
-	/// en: 'OK/Select shows controls with seek bar focused instead of toggling play/pause.'
-	String get selectShowsOsdTimelineDescription => 'OK/Select shows controls with seek bar focused instead of toggling play/pause.';
+	/// en: 'OK/Select and Play/Pause show controls with seek bar focused instead of toggling play/pause.'
+	String get selectShowsOsdTimelineDescription => 'OK/Select and Play/Pause show controls with seek bar focused instead of toggling play/pause.';
 
 	/// en: 'Video Player Controls'
 	String get videoPlayerControls => 'Video Player Controls';
@@ -4643,8 +4643,8 @@ extension on Translations {
 			'settings.showChapterMarkersOnTimelineDescription' => 'Segment the seek bar at chapter boundaries',
 			'settings.clickVideoTogglesPlayback' => 'Click on video to toggle play/pause',
 			'settings.clickVideoTogglesPlaybackDescription' => 'Click video to play/pause instead of showing controls.',
-			'settings.selectShowsOsdTimeline' => 'Plex-style OK button',
-			'settings.selectShowsOsdTimelineDescription' => 'OK/Select shows controls with seek bar focused instead of toggling play/pause.',
+			'settings.selectShowsOsdTimeline' => 'Plex-style OSD',
+			'settings.selectShowsOsdTimelineDescription' => 'OK/Select and Play/Pause show controls with seek bar focused instead of toggling play/pause.',
 			'settings.videoPlayerControls' => 'Video Player Controls',
 			'settings.keyboardShortcuts' => 'Keyboard Shortcuts',
 			'settings.keyboardShortcutsDescription' => 'Customize keyboard shortcuts',
