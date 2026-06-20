@@ -240,10 +240,10 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
       if (_videoPlayerNavigationEnabled || isMobile) {
         if (_isPlayPauseActivation(event)) {
           _playOrPause();
-          if (_videoPlayerNavigationEnabled) {
+          if (_videoPlayerNavigationEnabled && _selectShowsOsdTimeline) {
             _showControlsWithTimelineFocus();
           } else {
-            _showControlsWithFocus(requestFocus: false);
+            _showControlsWithFocus(requestFocus: _videoPlayerNavigationEnabled);
           }
         }
       }
