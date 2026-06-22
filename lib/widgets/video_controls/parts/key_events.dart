@@ -291,7 +291,10 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
     // On desktop/TV, show controls on directional input.
     // LEFT/RIGHT focuses timeline for seeking, UP/DOWN focuses play/pause.
     if (!isMobile && _isDirectionalKey(key) && (_videoPlayerNavigationEnabled || PlatformDetector.isTV())) {
-      if (!_showControls) {
+      // Controls hidden, OR controls visible but no child has focus yet (race
+      // between addPostFrameCallback focus scheduling and the next key press).
+      // In both cases, show/keep controls and handle the directional action.
+      if (!_showControls || _focusNode.hasPrimaryFocus) {
         final isHorizontal = key == LogicalKeyboardKey.arrowLeft || key == LogicalKeyboardKey.arrowRight;
         if (isHorizontal) {
           _showControlsWithTimelineFocus();
