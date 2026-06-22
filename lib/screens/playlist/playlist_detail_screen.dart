@@ -247,8 +247,14 @@ class _PlaylistDetailScreenState extends BaseMediaListDetailScreen<PlaylistDetai
   // Estimated item height for scroll-into-view (card + vertical margins)
   static const double _estimatedItemHeight = 114.0;
 
+  // Long-press detection for SELECT key (d-pad context menu)
+  Timer? _longPressTimer;
+  bool _isSelectKeyDown = false;
+  final GlobalKey<PlaylistItemCardState> _focusedCardKey = GlobalKey<PlaylistItemCardState>();
+
   @override
   void dispose() {
+    _longPressTimer?.cancel();
     _listFocusNode.dispose();
     disposeFocusResources();
     super.dispose();
@@ -633,6 +639,41 @@ class _PlaylistDetailScreenState extends BaseMediaListDetailScreen<PlaylistDetai
       return backResult;
     }
 
+    // Context menu key (dedicated menu button on some remotes) → show context menu directly.
+    if (event.isActionable && key.isContextMenuKey && _movingIndex == null && _focusedColumn == 0) {
+      SelectKeyUpSuppressor.suppressSelectUntilKeyUp();
+      _focusedCardKey.currentState?.showContextMenu();
+      return KeyEventResult.handled;
+    }
+
+    // Long-press detection for SELECT key on the main row (column 0).
+    // Hold SELECT 500ms → context menu; short press → normal action.
+    if (key.isSelectKey && _movingIndex == null && _focusedColumn == 0) {
+      if (event is KeyDownEvent) {
+        if (!_isSelectKeyDown) {
+          _isSelectKeyDown = true;
+          _longPressTimer?.cancel();
+          _longPressTimer = Timer(const Duration(milliseconds: 500), () {
+            if (mounted) {
+              SelectKeyUpSuppressor.suppressSelectUntilKeyUp();
+              _focusedCardKey.currentState?.showContextMenu();
+            }
+          });
+        }
+        return KeyEventResult.handled;
+      } else if (event is KeyRepeatEvent) {
+        return KeyEventResult.handled;
+      } else if (event is KeyUpEvent) {
+        final timerWasActive = _longPressTimer?.isActive ?? false;
+        _longPressTimer?.cancel();
+        if (timerWasActive && _isSelectKeyDown) {
+          _playFromItem(_focusedIndex);
+        }
+        _isSelectKeyDown = false;
+        return KeyEventResult.handled;
+      }
+    }
+
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
     if (_movingIndex != null) {
@@ -721,10 +762,7 @@ class _PlaylistDetailScreenState extends BaseMediaListDetailScreen<PlaylistDetai
         }
       }
       if (key.isSelectKey) {
-        if (_focusedColumn == 0) {
-          // Play from this item
-          _playFromItem(_focusedIndex);
-        } else if (_focusedColumn == 1 && _canEditPlaylist) {
+        if (_focusedColumn == 1 && _canEditPlaylist) {
           // Enter move mode
           setState(() {
             _movingIndex = _focusedIndex;
@@ -888,6 +926,7 @@ class _PlaylistDetailScreenState extends BaseMediaListDetailScreen<PlaylistDetai
         return RepaintBoundary(
           key: ValueKey(keyId),
           child: PlaylistItemCard(
+            key: isFocused ? _focusedCardKey : null,
             item: item,
             index: index,
             onRemove: () => _removeItem(index),
