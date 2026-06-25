@@ -10,15 +10,17 @@ extension _VideoPlayerEpisodeNavigationMethods on VideoPlayerScreenState {
   }
 
   /// Old screen-swap parity: after an in-place item change (or its failed
-  /// rollback), surface the chrome and re-anchor focus on play/pause. The
-  /// control that drove the swap (next button, queue item, play-next prompt)
-  /// may have unmounted or unfocused by now — without a fresh route's
-  /// autofocus, dpad navigation would be stranded until the chrome is hidden
-  /// and re-shown. Focusing play/pause is invisible in pointer mode (focus
-  /// visuals are keyboard/dpad-gated).
+  /// rollback), surface the chrome and re-anchor focus. The control that drove
+  /// the swap (next button, queue item, play-next prompt) may have unmounted
+  /// or unfocused by now — without a fresh route's autofocus, dpad navigation
+  /// would be stranded until the chrome is hidden and re-shown. Focusing a
+  /// control is invisible in pointer mode (focus visuals are keyboard/dpad-gated).
+  /// Respects the Plex-style OK setting: timeline when enabled, play/pause otherwise.
   void _showChromeForSwappedItem() {
     if (!mounted) return;
-    _chromeController.show(focusTarget: PlayerChromeFocusTarget.playPause);
+    final focusTimeline = SettingsService.instanceOrNull?.read(SettingsService.selectShowsOsdTimeline) ?? false;
+    final target = focusTimeline ? PlayerChromeFocusTarget.timeline : PlayerChromeFocusTarget.playPause;
+    _chromeController.show(focusTarget: target);
   }
 
   Future<void> _playNext() async {
