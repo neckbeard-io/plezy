@@ -321,6 +321,7 @@ class SettingsService extends BaseSharedPreferencesService {
   static const autoSkipCredits = BoolPref('auto_skip_credits');
   static const forceSkipMarkerFallback = BoolPref('force_skip_marker_fallback');
   static const autoSkipDelay = IntPref('auto_skip_delay', defaultValue: 5);
+  static const suppressSkipReappearance = BoolPref('suppress_skip_reappearance');
   static const introPattern = StringPref('intro_pattern', defaultValue: defaultIntroPattern);
   static const creditsPattern = StringPref('credits_pattern', defaultValue: defaultCreditsPattern);
   static const customDownloadPathType = NullableStringPref('custom_download_path_type');
