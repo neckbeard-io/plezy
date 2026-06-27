@@ -394,11 +394,14 @@ class _PlexVideoControlsState extends State<PlexVideoControls>
   bool get _autoSkipIntro => _settings.read(SettingsService.autoSkipIntro);
   bool get _autoSkipCredits => _settings.read(SettingsService.autoSkipCredits);
   int get _autoSkipDelay => _settings.read(SettingsService.autoSkipDelay);
+  bool get _suppressSkipReappearance => _settings.read(SettingsService.suppressSkipReappearance);
   Timer? _autoSkipTimer;
   double _autoSkipProgress = 0.0;
   // Skip button dismiss state
   bool _skipButtonDismissed = false;
   Timer? _skipButtonDismissTimer;
+  // Tracks markers that have already been shown (for reappearance suppression)
+  final Set<MediaMarker> _shownMarkers = {};
   // Video player navigation (use arrow keys to navigate controls)
   bool get _videoPlayerNavigationEnabled => _settings.read(SettingsService.videoPlayerNavigationEnabled);
   // Performance overlay
@@ -455,6 +458,7 @@ class _PlexVideoControlsState extends State<PlexVideoControls>
       SettingsService.autoSkipIntro,
       SettingsService.autoSkipCredits,
       SettingsService.autoSkipDelay,
+      SettingsService.suppressSkipReappearance,
       SettingsService.videoPlayerNavigationEnabled,
       SettingsService.showPerformanceOverlay,
       SettingsService.autoHidePerformanceOverlay,
