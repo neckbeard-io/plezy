@@ -777,6 +777,12 @@ class TranslationsSettingsEn {
 	/// en: 'Wait ${seconds} seconds before auto-skipping'
 	String autoSkipDelayDescription({required Object seconds}) => 'Wait ${seconds} seconds before auto-skipping';
 
+	/// en: 'Suppress Skip Reappearance'
+	String get suppressSkipReappearance => 'Suppress Skip Reappearance';
+
+	/// en: 'Only show each skip button once per marker, even if it reappears in the timeline'
+	String get suppressSkipReappearanceDescription => 'Only show each skip button once per marker, even if it reappears in the timeline';
+
 	/// en: 'Intro Marker Pattern'
 	String get introPattern => 'Intro Marker Pattern';
 
@@ -4722,6 +4728,8 @@ extension on Translations {
 			'settings.forceSkipMarkerFallbackDescription' => 'Use chapter title patterns even when Plex has markers',
 			'settings.autoSkipDelay' => 'Auto Skip Delay',
 			'settings.autoSkipDelayDescription' => ({required Object seconds}) => 'Wait ${seconds} seconds before auto-skipping',
+			'settings.suppressSkipReappearance' => 'Suppress Skip Reappearance',
+			'settings.suppressSkipReappearanceDescription' => 'Only show each skip button once per marker, even if it reappears in the timeline',
 			'settings.introPattern' => 'Intro Marker Pattern',
 			'settings.introPatternDescription' => 'Regex pattern to match intro markers in chapter titles',
 			'settings.creditsPattern' => 'Credits Marker Pattern',

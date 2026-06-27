@@ -68,6 +68,13 @@ extension _PlexVideoControlsMarkerMethods on _PlexVideoControlsState {
       return;
     }
 
+    // When suppression is enabled, skip markers that have already been shown
+    if (_suppressSkipReappearance && _shownMarkers.contains(foundMarker)) {
+      return;
+    }
+
+    _shownMarkers.add(foundMarker);
+
     _setControlsState(() {
       _currentMarker = foundMarker;
       _skipButtonDismissed = false;
@@ -274,7 +281,7 @@ extension _PlexVideoControlsMarkerMethods on _PlexVideoControlsState {
       focusNode: _skipMarkerFocusNode,
       onCancelAutoSkip: _cancelAutoSkipTimer,
       onPerformAutoSkip: _performAutoSkip,
-      onFocusDown: () => _desktopControlsKey.currentState?.requestPlayPauseFocus(),
+      onFocusDown: () => _desktopControlsKey.currentState?.requestTimelineFocus(),
     );
   }
 }
