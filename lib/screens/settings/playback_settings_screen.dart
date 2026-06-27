@@ -192,6 +192,12 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
           min: 1,
           max: 30,
         ),
+        SettingSwitchTile(
+          pref: SettingsService.suppressSkipReappearance,
+          icon: Symbols.visibility_off_rounded,
+          title: t.settings.suppressSkipReappearance,
+          subtitle: t.settings.suppressSkipReappearanceDescription,
+        ),
         SettingRegexTile(
           pref: SettingsService.introPattern,
           icon: Symbols.match_case_rounded,
