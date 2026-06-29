@@ -274,6 +274,10 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
   MediaItem? _tvDetailFocusedEpisode;
   bool _tvDetailActionRowHasFocus = false;
 
+  // Per-episode cast: caches roles fetched via fetchItem for individual episodes
+  final Map<String, List<MediaRole>> _episodeRolesCache = {};
+  String? _episodeRolesFetchingId; // prevents duplicate in-flight fetches
+
   // Inline season tabs
   int _selectedSeasonIndex = 0;
   final _seasonEpisodePager = _SeasonEpisodePager();
@@ -1891,6 +1895,39 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
       // Silently fail - related sections won't appear if fetch fails
       markLoaded();
     }
+  }
+
+  /// Fetch per-episode roles for the given episode id and cache them.
+  /// Triggers a rebuild so the cast section / TV actors hub updates.
+  Future<void> _fetchEpisodeRoles(String episodeId) async {
+    if (_episodeRolesCache.containsKey(episodeId)) return;
+    if (_episodeRolesFetchingId == episodeId) return;
+    _episodeRolesFetchingId = episodeId;
+    try {
+      final client = _getMediaClientForMetadata(context);
+      if (client == null) return;
+      final item = await client.fetchItem(episodeId);
+      if (!mounted || _episodeRolesFetchingId != episodeId) return;
+      final roles = item?.roles;
+      if (roles != null && roles.isNotEmpty) {
+        _episodeRolesCache[episodeId] = roles;
+        setStateIfMounted(() {});
+      }
+    } catch (_) {
+      // Silently fail — show-level cast remains the fallback.
+    } finally {
+      if (_episodeRolesFetchingId == episodeId) {
+        _episodeRolesFetchingId = null;
+      }
+    }
+  }
+
+  /// Returns episode-level roles if a focused episode has cached roles,
+  /// otherwise returns null (caller should fall back to show-level roles).
+  List<MediaRole>? get _activeFocusedEpisodeRoles {
+    final episodeId = _tvDetailFocusedEpisode?.id;
+    if (episodeId == null) return null;
+    return _episodeRolesCache[episodeId];
   }
 
   /// Focus the first visible section above cast: season tabs → overview → play button.
@@ -3717,8 +3754,12 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
     }
     final actors = _tvDetailActorItems(metadata);
     if (actors.isNotEmpty) {
+      final episodeCast = _activeFocusedEpisodeRoles != null;
+      final castTitle = episodeCast && _tvDetailFocusedEpisode != null
+          ? '${t.discover.cast} – ${_tvDetailFocusedEpisode!.title}'
+          : t.discover.cast;
       hubs.add(
-        MediaHub(id: _tvDetailActorsHubId, title: t.discover.cast, type: 'person', items: actors, size: actors.length),
+        MediaHub(id: _tvDetailActorsHubId, title: castTitle, type: 'person', items: actors, size: actors.length),
       );
     }
     if (_extras != null && _extras!.isNotEmpty) {
@@ -3753,7 +3794,8 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
   }
 
   List<MediaItem> _tvDetailActorItems(MediaItem metadata) {
-    final roles = metadata.roles;
+    // Prefer per-episode roles when a focused episode has cached cast data.
+    final roles = _activeFocusedEpisodeRoles ?? metadata.roles;
     if (roles == null || roles.isEmpty) return const [];
 
     return [
@@ -3819,6 +3861,10 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
     setStateIfMounted(() {
       _tvDetailFocusedEpisode = item;
     });
+    // Fetch per-episode cast in the background (cached after first load).
+    if (!widget.isOffline) {
+      unawaited(_fetchEpisodeRoles(item.id));
+    }
     if (hub.id == 'detail_episodes') {
       if (!_allEpisodesPageError && _episodes.isNotEmpty && item.id == _episodes.last.id) {
         unawaited(_loadMoreAllEpisodes());
