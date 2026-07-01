@@ -302,6 +302,10 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
             final forward = key == LogicalKeyboardKey.arrowRight;
             unawaited(_seekByTime(forward: forward));
           }
+        } else if (_selectShowsOsdTimeline && key == LogicalKeyboardKey.arrowUp && _currentMarker != null) {
+          // Plex-style: UP from the implicit timeline position goes to skip
+          // intro/credits button when one is visible, instead of opening OSD.
+          _skipMarkerFocusNode.requestFocus();
         } else {
           _showControlsWithFocus();
         }
