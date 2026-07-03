@@ -368,13 +368,12 @@ class MediaContextMenuState extends State<MediaContextMenu> {
       final itemSeriesKey = mediaKind == MediaKind.episode ? mediaItem.grandparentId : mediaItem.parentId;
       if ((mediaKind == MediaKind.episode || mediaKind == MediaKind.season) &&
           itemSeriesKey != null &&
-          !widget.isInContinueWatching &&
           ancestorSeriesKey != itemSeriesKey) {
         menuActions.add(_MenuAction(value: 'series', icon: Symbols.tv_rounded, label: t.mediaMenu.goToSeries));
       }
 
       // Go to Season (for episodes) — hide if already on that season's detail screen
-      if (mediaKind == MediaKind.episode && mediaItem.parentId != null && !widget.isInContinueWatching) {
+      if (mediaKind == MediaKind.episode && mediaItem.parentId != null) {
         final isOnSeason = ancestorMeta?.kind == MediaKind.season && ancestorMeta?.id == mediaItem.parentId;
         if (!isOnSeason) {
           menuActions.add(
