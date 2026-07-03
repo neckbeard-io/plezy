@@ -3853,8 +3853,9 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
       _clearTvDetailFocusedEpisode();
       return;
     }
+    // When focus moves to a non-episode hub (cast, extras, related), keep the
+    // focused episode so per-episode cast stays visible.
     if (!_isTvDetailEpisodeHub(hub) || !item.isEpisode) {
-      _clearTvDetailFocusedEpisode();
       return;
     }
     if (_tvDetailFocusedEpisode?.id == item.id) return;
@@ -3880,8 +3881,9 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
   }
 
   void _handleTvDetailHubChanged(MediaHub hub, int index) {
+    // When the active hub changes to a non-episode hub (e.g. cast, extras),
+    // keep the focused episode so per-episode cast is preserved.
     if (!_isTvDetailEpisodeHub(hub)) {
-      _clearTvDetailFocusedEpisode();
       return;
     }
     if (hub.items.isEmpty) _clearTvDetailFocusedEpisode();
