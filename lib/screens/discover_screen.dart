@@ -201,6 +201,16 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       return;
     }
 
+    // When an episode is marked as watched, remove it from the Continue
+    // Watching list immediately so the user sees instant feedback.  The
+    // delayed refresh then picks up the *next* unwatched episode from the
+    // server once it has had time to update its hub cache.
+    if (event.isNowWatched == true) {
+      _removeContinueWatchingItem(event.itemId);
+      unawaited(_refreshContinueWatchingDelayed());
+      return;
+    }
+
     // Refresh continue watching when any relevant item changes
     unawaited(_refreshContinueWatching());
   }
@@ -563,6 +573,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     WidgetsBinding.instance.removeObserver(this);
     _autoScrollTimer?.cancel();
     _indicatorTimer?.cancel();
+    _continueWatchingDelayTimer?.cancel();
     _spotlightDebouncer.dispose();
     _spotlightItem.dispose();
     _pendingSystemShelfItems = null;
@@ -860,6 +871,19 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     }
   }
 
+  Timer? _continueWatchingDelayTimer;
+
+  /// Refresh Continue Watching after a short delay, giving the backend time
+  /// to update its hub/on-deck cache after a scrobble.
+  Future<void> _refreshContinueWatchingDelayed() {
+    _continueWatchingDelayTimer?.cancel();
+    final completer = Completer<void>();
+    _continueWatchingDelayTimer = Timer(const Duration(milliseconds: 800), () {
+      completer.complete(_refreshContinueWatching());
+    });
+    return completer.future;
+  }
+
   /// Refresh only the Continue Watching section in the background
   /// This is called when returning to the home screen to avoid blocking UI
   Future<void> _refreshContinueWatching() async {
@@ -953,12 +977,13 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     }
   }
 
-  // Public method to refresh content (for normal navigation)
+  // Public method to refresh content (for normal navigation, e.g. returning
+  // from the video player). Uses a short delay so the backend has time to
+  // update its Continue Watching / On-Deck hub after a scrobble.
   @override
   void refresh() {
     appLogger.d('DiscoverScreen.refresh() called');
-    // Only refresh Continue Watching in background, not full screen reload
-    _refreshContinueWatching();
+    _refreshContinueWatchingDelayed();
   }
 
   // Public method to fully reload all content (for profile switches)
