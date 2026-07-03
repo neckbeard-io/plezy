@@ -301,7 +301,18 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
         } else if (_selectShowsOsdTimeline && key == LogicalKeyboardKey.arrowUp && _currentMarker != null) {
           // Plex-style: UP from the implicit timeline position goes to skip
           // intro/credits button when one is visible, instead of opening OSD.
-          _skipMarkerFocusNode.requestFocus();
+          // Un-dismiss the button first (it auto-hides after 7s) so the widget
+          // re-enters the tree, then focus it on the next frame.
+          if (_skipButtonDismissed) {
+            _setControlsState(() {
+              _skipButtonDismissed = false;
+            });
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _skipMarkerFocusNode.requestFocus();
+            });
+          } else {
+            _skipMarkerFocusNode.requestFocus();
+          }
         } else {
           _showControlsWithFocus();
         }
