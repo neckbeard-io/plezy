@@ -373,6 +373,16 @@ class MediaContextMenuState extends State<MediaContextMenu> {
         menuActions.add(_MenuAction(value: 'series', icon: Symbols.tv_rounded, label: t.mediaMenu.goToSeries));
       }
 
+      // Go to Season (for episodes) — hide if already on that season's detail screen
+      if (mediaKind == MediaKind.episode && mediaItem.parentId != null && !widget.isInContinueWatching) {
+        final isOnSeason = ancestorMeta?.kind == MediaKind.season && ancestorMeta?.id == mediaItem.parentId;
+        if (!isOnSeason) {
+          menuActions.add(
+            _MenuAction(value: 'season', icon: Symbols.folder_rounded, label: t.mediaMenu.goToSeason),
+          );
+        }
+      }
+
       if (mediaKind == MediaKind.show || mediaKind == MediaKind.season) {
         menuActions.add(
           _MenuAction(value: 'shuffle_play', icon: Symbols.shuffle_rounded, label: t.mediaMenu.shufflePlay),
@@ -673,6 +683,19 @@ class MediaContextMenuState extends State<MediaContextMenu> {
               );
             },
             t.messages.errorLoadingSeries,
+          );
+          break;
+
+        case 'season':
+          didNavigate = true;
+          await _navigateToRelated(
+            context,
+            mediaItem!.parentId,
+            (item) => mediaDetailRoute(
+              metadata: item,
+              initialEpisodeId: mediaItem.id,
+            ),
+            t.messages.errorLoadingSeason,
           );
           break;
 
