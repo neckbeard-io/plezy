@@ -116,6 +116,66 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
       }
     }
 
+    // Play/pause + directional fallback when _focusNode lost focus on TV.
+    // Same pattern as the back-key fallback above: Focus.onKeyEvent won't
+    // fire when _focusNode lost focus (e.g. Android system UI stole it,
+    // MediaSession overlay, returning from background), so handle these
+    // globally as a safety net. The !_focusNode.hasFocus guard prevents
+    // double-handling when Focus.onKeyEvent already processes the event.
+    if (_videoPlayerNavigationEnabled && !_focusNode.hasFocus) {
+      // Play/pause — always toggle, regardless of focus state.
+      if (_isPlayPauseActivation(event)) {
+        _focusNode.requestFocus();
+        _playOrPause();
+        if (_selectShowsOsdTimeline) {
+          _showControlsWithTimelineFocus();
+        } else {
+          _showControlsWithFocus();
+        }
+        return true;
+      }
+
+      // Directional keys — show controls and seek/navigate.
+      if (_isDirectionalKey(event.logicalKey) && event.isActionable) {
+        _focusNode.requestFocus();
+        final key = event.logicalKey;
+        final isHorizontal = key == LogicalKeyboardKey.arrowLeft || key == LogicalKeyboardKey.arrowRight;
+        if (isHorizontal) {
+          _showControlsWithTimelineFocus();
+          if (widget.canControl) {
+            unawaited(_seekByTime(forward: key == LogicalKeyboardKey.arrowRight));
+          }
+        } else {
+          _showControlsWithFocus();
+        }
+        return true;
+      }
+
+      // Select/OK — reclaim focus and mirror the normal Focus.onKeyEvent
+      // behavior (Plex-style: show OSD / non-Plex: toggle play).
+      if (_isSelectKey(event.logicalKey) && event is KeyDownEvent) {
+        _focusNode.requestFocus();
+        if (_selectShowsOsdTimeline) {
+          _showControlsWithTimelineFocus();
+        } else {
+          _playOrPause();
+          _showControlsWithFocus();
+        }
+        return true;
+      }
+
+      // Media seek keys (FF/RW on remotes)
+      if (event is KeyDownEvent && _isMediaSeekKey(event.logicalKey)) {
+        _focusNode.requestFocus();
+        if (widget.canControl) {
+          unawaited(_seekToChapter(forward: event.logicalKey == LogicalKeyboardKey.mediaFastForward ||
+              event.logicalKey == LogicalKeyboardKey.mediaSkipForward));
+        }
+        _showControlsWithFocus();
+        return true;
+      }
+    }
+
     // Only handle when video player navigation is disabled (desktop mode without D-pad nav)
     if (_videoPlayerNavigationEnabled) return false;
 
