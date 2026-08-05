@@ -906,6 +906,12 @@ class Translations$settings$en {
 	/// en: 'Use chapter title patterns even when Plex has markers'
 	String get forceSkipMarkerFallbackDescription => 'Use chapter title patterns even when Plex has markers';
 
+	/// en: 'Suppress Skip Reappearance'
+	String get suppressSkipReappearance => 'Suppress Skip Reappearance';
+
+	/// en: 'Only show each skip button once per marker, even if it reappears in the timeline'
+	String get suppressSkipReappearanceDescription => 'Only show each skip button once per marker, even if it reappears in the timeline';
+
 	/// en: 'Auto Skip Delay'
 	String get autoSkipDelay => 'Auto Skip Delay';
 
@@ -7321,6 +7327,8 @@ extension on Translations {
 			'settings.skipMarkerModeAuto' => 'Automatic',
 			'settings.forceSkipMarkerFallback' => 'Force Fallback Markers',
 			'settings.forceSkipMarkerFallbackDescription' => 'Use chapter title patterns even when Plex has markers',
+			'settings.suppressSkipReappearance' => 'Suppress Skip Reappearance',
+			'settings.suppressSkipReappearanceDescription' => 'Only show each skip button once per marker, even if it reappears in the timeline',
 			'settings.autoSkipDelay' => 'Auto Skip Delay',
 			'settings.autoSkipDelayDescription' => ({required Object seconds}) => 'Wait ${seconds} seconds before auto-skipping',
 			'settings.introPattern' => 'Intro Marker Pattern',
@@ -7556,10 +7564,10 @@ extension on Translations {
 			'fileInfo.sourceStream' => 'Copied From',
 			'fileInfo.temporary' => 'Temporary',
 			'fileInfo.timeBase' => 'Time Base',
-			'fileInfo.overallBitrate' => 'Overall Bitrate',
-			'fileInfo.path' => 'Path',
 			_ => null,
 		} ?? switch (path) {
+			'fileInfo.overallBitrate' => 'Overall Bitrate',
+			'fileInfo.path' => 'Path',
 			'fileInfo.fileName' => 'File Name',
 			'fileInfo.size' => 'Size',
 			'fileInfo.totalSize' => 'Total Size',
@@ -8070,10 +8078,10 @@ extension on Translations {
 			'libraries.showLibrary' => 'Show library',
 			'libraries.hideLibrary' => 'Hide library',
 			'libraries.libraryOptions' => 'Library options',
-			'libraries.content' => 'library content',
-			'libraries.selectLibrary' => 'Select library',
 			_ => null,
 		} ?? switch (path) {
+			'libraries.content' => 'library content',
+			'libraries.selectLibrary' => 'Select library',
 			'libraries.filtersWithCount' => ({required Object count}) => 'Filters (${count})',
 			'libraries.noRecommendations' => 'No recommendations available',
 			'libraries.noCollections' => 'No collections in this library',
@@ -8584,10 +8592,10 @@ extension on Translations {
 			'downloads.cancelledDownload' => 'Canceled download',
 			'downloads.syncingFile' => ({required Object file, required Object status}) => '${file} (syncing ${status})',
 			'downloads.downloadedFileClickToComplete' => ({required Object file}) => 'Downloaded ${file} - Click to complete',
-			'downloads.partialDownloadClickToComplete' => 'Partially downloaded - Click to complete',
-			'downloads.deleting' => 'Deleting...',
 			_ => null,
 		} ?? switch (path) {
+			'downloads.partialDownloadClickToComplete' => 'Partially downloaded - Click to complete',
+			'downloads.deleting' => 'Deleting...',
 			'downloads.deletingWithProgress' => ({required Object title, required Object current, required Object total}) => 'Deleting ${title}... (${current} of ${total})',
 			'downloads.queuedTooltip' => 'Queued',
 			'downloads.queuedFilesTooltip' => ({required Object files}) => 'Queued ${files}',
