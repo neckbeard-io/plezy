@@ -1781,6 +1781,9 @@ class Translations$mediaMenu$en {
 	/// en: 'Go to series'
 	String get goToSeries => 'Go to series';
 
+	/// en: 'Go to season'
+	String get goToSeason => 'Go to season';
+
 	/// en: 'Shuffle Play'
 	String get shufflePlay => 'Shuffle Play';
 
@@ -2364,6 +2367,9 @@ class Translations$messages$en {
 
 	/// en: 'Error loading series'
 	String get errorLoadingSeries => 'Error loading series';
+
+	/// en: 'Error loading season'
+	String get errorLoadingSeason => 'Error loading season';
 
 	/// en: 'Music playback is not yet supported'
 	String get musicNotSupported => 'Music playback is not yet supported';
@@ -7897,6 +7903,7 @@ extension on Translations {
 			'mediaMenu.removeFromContinueWatching' => 'Remove from Continue Watching',
 			'mediaMenu.viewDetails' => 'View details',
 			'mediaMenu.goToSeries' => 'Go to series',
+			'mediaMenu.goToSeason' => 'Go to season',
 			'mediaMenu.shufflePlay' => 'Shuffle Play',
 			'mediaMenu.shuffleNotAvailableOffline' => 'Shuffle not available offline',
 			'mediaMenu.fileInfo' => 'File Info',
@@ -8077,6 +8084,7 @@ extension on Translations {
 			'messages.mediaUnavailable' => 'This content is no longer available.',
 			'messages.errorLoadingFileInfo' => ({required Object error}) => 'Error loading file info: ${error}',
 			'messages.errorLoadingSeries' => 'Error loading series',
+			'messages.errorLoadingSeason' => 'Error loading season',
 			'messages.musicNotSupported' => 'Music playback is not yet supported',
 			'messages.noDescriptionAvailable' => 'No description available',
 			'messages.noProfilesAvailable' => 'No profiles available',
@@ -8340,10 +8348,10 @@ extension on Translations {
 			'errors.reasonUnreachable' => 'the server could not be reached',
 			'errors.reasonRefused' => 'the server refused the request',
 			'errors.reasonNotFound' => 'the item is no longer on the server',
-			'errors.reasonServerError' => 'the server reported an error',
-			'errors.reasonCancelled' => 'the request was cancelled',
 			_ => null,
 		} ?? switch (path) {
+			'errors.reasonServerError' => 'the server reported an error',
+			'errors.reasonCancelled' => 'the request was cancelled',
 			'errors.reasonUnexpected' => 'an unexpected error occurred',
 			'libraries.title' => 'Libraries',
 			'libraries.fallbackTitle' => 'Library',
@@ -8854,10 +8862,10 @@ extension on Translations {
 			'watchTogether.hostTransferFailed' => ({required Object name}) => 'Couldn\'t make ${name} the host',
 			'watchTogether.watchingWithOthers' => 'Watching with others',
 			'watchTogether.endSession' => 'End Session',
-			'watchTogether.leaveSession' => 'Leave Session',
-			'watchTogether.endSessionQuestion' => 'End Session?',
 			_ => null,
 		} ?? switch (path) {
+			'watchTogether.leaveSession' => 'Leave Session',
+			'watchTogether.endSessionQuestion' => 'End Session?',
 			'watchTogether.leaveSessionQuestion' => 'Leave Session?',
 			'watchTogether.endSessionConfirm' => 'This will end the session for all participants.',
 			'watchTogether.leaveSessionConfirm' => 'You will be removed from the session.',
@@ -9368,10 +9376,10 @@ extension on Translations {
 			'services.pendingAuth.copyUrl' => 'Copy sign-in URL',
 			'services.pendingAuth.urlCopied' => 'URL copied',
 			'services.libraryFilter.title' => 'Library filter',
-			'services.libraryFilter.subtitleAllSyncing' => 'Syncing all libraries',
-			'services.libraryFilter.subtitleNoneSyncing' => 'Nothing syncing',
 			_ => null,
 		} ?? switch (path) {
+			'services.libraryFilter.subtitleAllSyncing' => 'Syncing all libraries',
+			'services.libraryFilter.subtitleNoneSyncing' => 'Nothing syncing',
 			'services.libraryFilter.subtitleBlocked' => ({required Object count}) => '${count} blocked',
 			'services.libraryFilter.subtitleAllowed' => ({required Object count}) => '${count} allowed',
 			'services.libraryFilter.mode' => 'Filter mode',
