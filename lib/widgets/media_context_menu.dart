@@ -558,11 +558,21 @@ class MediaContextMenuState extends State<MediaContextMenu> {
           : ancestorMeta?.id;
       // For episodes, the show key is grandparentId; for seasons, it's parentId
       final itemSeriesKey = mediaKind == MediaKind.episode ? mediaItem.grandparentId : mediaItem.parentId;
+      // Continue Watching rows are exactly where jumping to the parent show or
+      // season is most useful, so they are not excluded.
       if ((mediaKind == MediaKind.episode || mediaKind == MediaKind.season) &&
           itemSeriesKey != null &&
-          !widget.isInContinueWatching &&
           ancestorSeriesKey != itemSeriesKey) {
         menuActions.add(_MenuAction(value: 'series', icon: Symbols.tv_rounded, label: t.mediaMenu.goToSeries));
+      }
+
+      // Go to Season (for episodes) — hidden when already on that season's
+      // detail screen.
+      if (mediaKind == MediaKind.episode && mediaItem.parentId != null) {
+        final isOnSeason = ancestorMeta?.kind == MediaKind.season && ancestorMeta?.id == mediaItem.parentId;
+        if (!isOnSeason) {
+          menuActions.add(_MenuAction(value: 'season', icon: Symbols.folder_rounded, label: t.mediaMenu.goToSeason));
+        }
       }
 
       if (mediaKind == MediaKind.show || mediaKind == MediaKind.season) {
@@ -844,6 +854,18 @@ class MediaContextMenuState extends State<MediaContextMenu> {
               );
             },
             t.messages.errorLoadingSeries,
+          );
+          break;
+
+        case 'season':
+          didNavigate = true;
+          await _navigateToRelated(
+            context,
+            mediaItem!.parentId,
+            (context, item) async {
+              await Navigator.push(context, mediaDetailRoute(metadata: item, initialEpisodeId: mediaItem.id));
+            },
+            t.messages.errorLoadingSeason,
           );
           break;
 

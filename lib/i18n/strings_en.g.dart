@@ -1712,6 +1712,9 @@ class Translations$mediaMenu$en {
 	/// en: 'Go to series'
 	String get goToSeries => 'Go to series';
 
+	/// en: 'Go to season'
+	String get goToSeason => 'Go to season';
+
 	/// en: 'Shuffle Play'
 	String get shufflePlay => 'Shuffle Play';
 
@@ -2292,6 +2295,9 @@ class Translations$messages$en {
 
 	/// en: 'Error loading series'
 	String get errorLoadingSeries => 'Error loading series';
+
+	/// en: 'Error loading season'
+	String get errorLoadingSeason => 'Error loading season';
 
 	/// en: 'Music playback is not yet supported'
 	String get musicNotSupported => 'Music playback is not yet supported';
@@ -7604,6 +7610,7 @@ extension on Translations {
 			'mediaMenu.removeFromContinueWatching' => 'Remove from Continue Watching',
 			'mediaMenu.viewDetails' => 'View details',
 			'mediaMenu.goToSeries' => 'Go to series',
+			'mediaMenu.goToSeason' => 'Go to season',
 			'mediaMenu.shufflePlay' => 'Shuffle Play',
 			'mediaMenu.shuffleNotAvailableOffline' => 'Shuffle not available offline',
 			'mediaMenu.fileInfo' => 'File Info',
@@ -7783,6 +7790,7 @@ extension on Translations {
 			'messages.mediaUnavailable' => 'This content is no longer available.',
 			'messages.errorLoadingFileInfo' => ({required Object error}) => 'Error loading file info: ${error}',
 			'messages.errorLoadingSeries' => 'Error loading series',
+			'messages.errorLoadingSeason' => 'Error loading season',
 			'messages.musicNotSupported' => 'Music playback is not yet supported',
 			'messages.noDescriptionAvailable' => 'No description available',
 			'messages.noProfilesAvailable' => 'No profiles available',
@@ -8070,10 +8078,10 @@ extension on Translations {
 			'libraries.showLibrary' => 'Show library',
 			'libraries.hideLibrary' => 'Hide library',
 			'libraries.libraryOptions' => 'Library options',
-			'libraries.content' => 'library content',
-			'libraries.selectLibrary' => 'Select library',
 			_ => null,
 		} ?? switch (path) {
+			'libraries.content' => 'library content',
+			'libraries.selectLibrary' => 'Select library',
 			'libraries.filtersWithCount' => ({required Object count}) => 'Filters (${count})',
 			'libraries.noRecommendations' => 'No recommendations available',
 			'libraries.noCollections' => 'No collections in this library',
@@ -8584,10 +8592,10 @@ extension on Translations {
 			'downloads.cancelledDownload' => 'Canceled download',
 			'downloads.syncingFile' => ({required Object file, required Object status}) => '${file} (syncing ${status})',
 			'downloads.downloadedFileClickToComplete' => ({required Object file}) => 'Downloaded ${file} - Click to complete',
-			'downloads.partialDownloadClickToComplete' => 'Partially downloaded - Click to complete',
-			'downloads.deleting' => 'Deleting...',
 			_ => null,
 		} ?? switch (path) {
+			'downloads.partialDownloadClickToComplete' => 'Partially downloaded - Click to complete',
+			'downloads.deleting' => 'Deleting...',
 			'downloads.deletingWithProgress' => ({required Object title, required Object current, required Object total}) => 'Deleting ${title}... (${current} of ${total})',
 			'downloads.queuedTooltip' => 'Queued',
 			'downloads.queuedFilesTooltip' => ({required Object files}) => 'Queued ${files}',
