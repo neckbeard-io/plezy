@@ -3684,6 +3684,9 @@ class Translations$playlists$en {
 	/// en: 'Remove from Playlist'
 	String get removeItem => 'Remove from Playlist';
 
+	/// en: 'Play from Beginning'
+	String get playFromBeginning => 'Play from Beginning';
+
 	/// en: 'Smart Playlist'
 	String get smartPlaylist => 'Smart Playlist';
 
@@ -8123,6 +8126,7 @@ extension on Translations {
 			'playlists.enterPlaylistName' => 'Enter playlist name',
 			'playlists.delete' => 'Delete Playlist',
 			'playlists.removeItem' => 'Remove from Playlist',
+			'playlists.playFromBeginning' => 'Play from Beginning',
 			'playlists.smartPlaylist' => 'Smart Playlist',
 			'playlists.itemCount' => ({required Object count}) => '${count} items',
 			'playlists.oneItem' => '1 item',
@@ -8336,9 +8340,9 @@ extension on Translations {
 			'downloads.backgroundWarning.statusBlocked' => 'Blocked by system settings',
 			'downloads.backgroundWarning.statusDegraded' => 'Limited by system settings',
 			'downloads.backgroundWarning.statusUnknown' => 'Not checked yet',
-			'downloads.backgroundWarning.settingsUnavailable' => 'Couldn\'t open system settings on this device',
 			_ => null,
 		} ?? switch (path) {
+			'downloads.backgroundWarning.settingsUnavailable' => 'Couldn\'t open system settings on this device',
 			'downloads.backgroundWarning.linkUnavailable' => 'Couldn\'t open dontkillmyapp.com on this device',
 			'downloads.unknownShow' => 'Unknown Show',
 			'downloads.unknownSeason' => 'Unknown Season',
