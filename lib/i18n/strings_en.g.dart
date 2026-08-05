@@ -3406,6 +3406,9 @@ class Translations$playlists$en {
 	/// en: 'Remove from Playlist'
 	String get removeItem => 'Remove from Playlist';
 
+	/// en: 'Play from Beginning'
+	String get playFromBeginning => 'Play from Beginning';
+
 	/// en: 'Smart Playlist'
 	String get smartPlaylist => 'Smart Playlist';
 
@@ -7258,6 +7261,7 @@ extension on Translations {
 			'playlists.enterPlaylistName' => 'Enter playlist name',
 			'playlists.delete' => 'Delete Playlist',
 			'playlists.removeItem' => 'Remove from Playlist',
+			'playlists.playFromBeginning' => 'Play from Beginning',
 			'playlists.smartPlaylist' => 'Smart Playlist',
 			'playlists.itemCount' => ({required Object count}) => '${count} items',
 			'playlists.oneItem' => '1 item',
@@ -7600,9 +7604,9 @@ extension on Translations {
 			'externalPlayer.useExternalPlayerDescription' => 'Open videos in another app',
 			'externalPlayer.selectPlayer' => 'Select Player',
 			'externalPlayer.customPlayers' => 'Custom Players',
-			'externalPlayer.systemDefault' => 'System Default',
 			_ => null,
 		} ?? switch (path) {
+			'externalPlayer.systemDefault' => 'System Default',
 			'externalPlayer.addCustomPlayer' => 'Add Custom Player',
 			'externalPlayer.playerName' => 'Player Name',
 			'externalPlayer.playerNameHint' => 'My Player',
