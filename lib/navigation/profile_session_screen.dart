@@ -16,6 +16,7 @@ import '../providers/companion_remote_provider.dart';
 import '../providers/discover_provider.dart';
 import '../providers/explore_provider.dart';
 import '../providers/hidden_libraries_provider.dart';
+import '../providers/hidden_servers_provider.dart';
 import '../providers/libraries_provider.dart';
 import '../providers/multi_server_provider.dart';
 import '../providers/playback_state_provider.dart';
@@ -208,6 +209,16 @@ class _ProfileSessionScreenState extends State<ProfileSessionScreen> {
                 create: (context) =>
                     HiddenLibrariesProvider(storageService: context.read<StorageService>(), profileId: activeId),
                 lazy: true,
+              ),
+              // Not lazy: the hidden set has to reach MultiServerProvider before
+              // the first hub/on-deck fan-out, or hidden servers flash in.
+              ChangeNotifierProvider(
+                create: (context) => HiddenServersProvider(
+                  storageService: context.read<StorageService>(),
+                  profileId: activeId,
+                  multiServer: context.read<MultiServerProvider>(),
+                ),
+                lazy: false,
               ),
               ChangeNotifierProvider(
                 create: (context) {
