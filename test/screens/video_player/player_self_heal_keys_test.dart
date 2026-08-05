@@ -13,9 +13,9 @@ import '../../test_helpers/mock_player_channels.dart';
 import '../../test_helpers/prefs.dart';
 
 /// Regression coverage for #1797: while the screen node holds primary focus,
-/// its self-heal answers an actionable key by raising the chrome onto the
-/// Play/Pause button. With "Video Player Navigation" off, arrows are playback
-/// shortcuts and must not be turned into a focus jump — but Tab is the
+/// its self-heal answers an actionable key by raising the chrome onto the seek
+/// bar (timeline-first focus). With "Video Player Navigation" off, arrows are
+/// playback shortcuts and must not be turned into a focus jump — but Tab is the
 /// deliberate way into the OSD and must keep working.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -34,7 +34,7 @@ void main() {
   testWidgets('an arrow is left to the playback shortcuts when player navigation is off', (tester) async {
     final target = await _selfHealTargetFor(tester, LogicalKeyboardKey.arrowLeft);
 
-    expect(target, isNull, reason: 'an arrow must seek, not pull focus onto Play/Pause');
+    expect(target, isNull, reason: 'an arrow must seek, not pull focus into the OSD');
   });
 
   testWidgets('Tab still walks into the player controls when player navigation is off', (tester) async {
@@ -42,8 +42,8 @@ void main() {
 
     expect(
       target,
-      PlayerChromeFocusTarget.playPause,
-      reason: 'Tab is the deliberate way into the OSD and must keep reaching it',
+      PlayerChromeFocusTarget.timeline,
+      reason: 'Tab is the deliberate way into the OSD and must keep reaching it, seek bar first',
     );
   });
 }
