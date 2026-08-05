@@ -288,6 +288,8 @@
     "skipMarkerModeAuto": "Automatic",
     "forceSkipMarkerFallback": "Force Fallback Markers",
     "forceSkipMarkerFallbackDescription": "Use chapter title patterns even when Plex has markers",
+    "suppressSkipReappearance": "Suppress Skip Reappearance",
+    "suppressSkipReappearanceDescription": "Only show each skip button once per marker, even if it reappears in the timeline",
     "autoSkipDelay": "Auto Skip Delay",
     "autoSkipDelayDescription": "Wait ${seconds} seconds before auto-skipping",
     "introPattern": "Intro Marker Pattern",
