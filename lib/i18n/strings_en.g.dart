@@ -720,6 +720,12 @@ class Translations$settings$en {
 	/// en: 'Click video to play/pause instead of showing controls.'
 	String get clickVideoTogglesPlaybackDescription => 'Click video to play/pause instead of showing controls.';
 
+	/// en: 'Plex-style OSD'
+	String get selectShowsOsdTimeline => 'Plex-style OSD';
+
+	/// en: 'OK/Select and Play/Pause show controls with the seek bar focused instead of toggling play/pause.'
+	String get selectShowsOsdTimelineDescription => 'OK/Select and Play/Pause show controls with the seek bar focused instead of toggling play/pause.';
+
 	/// en: 'Video Player Controls'
 	String get videoPlayerControls => 'Video Player Controls';
 
@@ -7274,6 +7280,8 @@ extension on Translations {
 			'settings.specialsOrderingLast' => 'After regular seasons',
 			'settings.clickVideoTogglesPlayback' => 'Click on video to toggle play/pause',
 			'settings.clickVideoTogglesPlaybackDescription' => 'Click video to play/pause instead of showing controls.',
+			'settings.selectShowsOsdTimeline' => 'Plex-style OSD',
+			'settings.selectShowsOsdTimelineDescription' => 'OK/Select and Play/Pause show controls with the seek bar focused instead of toggling play/pause.',
 			'settings.videoPlayerControls' => 'Video Player Controls',
 			'settings.keyboardShortcuts' => 'Keyboard Shortcuts',
 			'settings.keyboardShortcutsDescription' => 'Customize keyboard shortcuts',
@@ -7571,10 +7579,10 @@ extension on Translations {
 			'fileInfo.externalDelivery' => 'Can Be Served Separately',
 			'fileInfo.sidecarPath' => 'Sidecar Path',
 			'fileInfo.sourceStream' => 'Copied From',
-			'fileInfo.temporary' => 'Temporary',
-			'fileInfo.timeBase' => 'Time Base',
 			_ => null,
 		} ?? switch (path) {
+			'fileInfo.temporary' => 'Temporary',
+			'fileInfo.timeBase' => 'Time Base',
 			'fileInfo.overallBitrate' => 'Overall Bitrate',
 			'fileInfo.path' => 'Path',
 			'fileInfo.fileName' => 'File Name',
@@ -8085,10 +8093,10 @@ extension on Translations {
 			'libraries.sort' => 'Sort',
 			'libraries.sortBy' => 'Sort By',
 			'libraries.filters' => 'Filters',
-			'libraries.confirmActionMessage' => 'Are you sure you want to perform this action?',
-			'libraries.showLibrary' => 'Show library',
 			_ => null,
 		} ?? switch (path) {
+			'libraries.confirmActionMessage' => 'Are you sure you want to perform this action?',
+			'libraries.showLibrary' => 'Show library',
 			'libraries.hideLibrary' => 'Hide library',
 			'libraries.libraryOptions' => 'Library options',
 			'libraries.content' => 'library content',
@@ -8599,10 +8607,10 @@ extension on Translations {
 			'downloads.deleteConfirm' => ({required Object title}) => 'Delete "${title}" from this device?',
 			'downloads.cancelledDownloadTitle' => 'Canceled Download',
 			'downloads.cancelledDownloadMessage' => 'This download was canceled. What would you like to do?',
-			'downloads.allEpisodesAlreadyDownloaded' => 'All episodes already downloaded',
-			'downloads.resumeDownload' => 'Resume download',
 			_ => null,
 		} ?? switch (path) {
+			'downloads.allEpisodesAlreadyDownloaded' => 'All episodes already downloaded',
+			'downloads.resumeDownload' => 'Resume download',
 			'downloads.cancelledDownload' => 'Canceled download',
 			'downloads.syncingFile' => ({required Object file, required Object status}) => '${file} (syncing ${status})',
 			'downloads.downloadedFileClickToComplete' => ({required Object file}) => 'Downloaded ${file} - Click to complete',
