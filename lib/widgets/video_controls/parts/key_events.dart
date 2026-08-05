@@ -270,10 +270,15 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
 
     if (_isDirectionalKey(key) && event.isActionable) {
       _focusNode.requestFocus();
-      if (_isHorizontalKey(key)) {
-        if (widget.canControl) unawaited(_seekByTime(forward: key == LogicalKeyboardKey.arrowRight));
-      } else {
-        _showControlsWithFocus();
+      // Act on the press only. A held arrow would otherwise fire one seek per
+      // repeat straight at the player, with none of the coalescing the normal
+      // paths have; the repeats are still consumed so they can't leak.
+      if (event is KeyDownEvent) {
+        if (_isHorizontalKey(key)) {
+          if (widget.canControl) unawaited(_seekByTime(forward: key == LogicalKeyboardKey.arrowRight));
+        } else {
+          _showControlsWithFocus();
+        }
       }
       return true;
     }
