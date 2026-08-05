@@ -44,10 +44,10 @@ class PlaylistItemCard extends StatefulWidget {
   });
 
   @override
-  State<PlaylistItemCard> createState() => _PlaylistItemCardState();
+  State<PlaylistItemCard> createState() => PlaylistItemCardState();
 }
 
-class _PlaylistItemCardState extends State<PlaylistItemCard> with ContextMenuTapMixin<PlaylistItemCard> {
+class PlaylistItemCardState extends State<PlaylistItemCard> with ContextMenuTapMixin<PlaylistItemCard> {
   MediaItem _effectiveItem(BuildContext context) => context.withFreshWatchState(widget.item);
 
   @override
