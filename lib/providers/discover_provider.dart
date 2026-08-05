@@ -232,6 +232,7 @@ class DiscoverProvider extends ChangeNotifier with DisposableChangeNotifierMixin
   DiscoverRefreshOutcome _lastOutcome = DiscoverRefreshOutcome.cancelled;
   Future<void>? _continueWatchingRefreshFuture;
   bool _continueWatchingRefreshQueued = false;
+  Timer? _continueWatchingSettleTimer;
 
   Set<String> _lastSeenHiddenKeys = {};
   List<String> _lastSeenLibraryOrderKeys = const [];
@@ -790,6 +791,27 @@ class DiscoverProvider extends ChangeNotifier with DisposableChangeNotifierMixin
     return refresh;
   }
 
+  /// Refresh Continue Watching after a short settle delay.
+  ///
+  /// A scrobble reaches the server before the server rebuilds its on-deck /
+  /// Continue Watching hub, so refreshing the instant an episode is marked
+  /// watched fetches the stale hub and the finished episode reappears instead
+  /// of the next unwatched one. Waiting lets the backend catch up. Repeated
+  /// calls collapse onto the last one.
+  void refreshContinueWatchingWhenSettled() {
+    _continueWatchingSettleTimer?.cancel();
+    _continueWatchingSettleTimer = Timer(continueWatchingSettleDelay, () {
+      _continueWatchingSettleTimer = null;
+      if (isDisposed) return;
+      unawaited(refreshContinueWatching());
+    });
+  }
+
+  /// How long [refreshContinueWatchingWhenSettled] waits for the server to
+  /// rebuild its on-deck hub. Shortened in tests.
+  @visibleForTesting
+  static Duration continueWatchingSettleDelay = const Duration(milliseconds: 800);
+
   Future<void> _runContinueWatchingRefreshes() async {
     do {
       _continueWatchingRefreshQueued = false;
@@ -923,6 +945,8 @@ class DiscoverProvider extends ChangeNotifier with DisposableChangeNotifierMixin
 
     if (event.changeType == WatchStateChangeType.removedFromContinueWatching) {
       _evictFromOnDeck((item) => item.id == event.itemId);
+      unawaited(refreshContinueWatching());
+      return;
     } else if (event.changeType == WatchStateChangeType.watched ||
         (event.changeType == WatchStateChangeType.progressUpdate && event.isNowWatched == true)) {
       // Finished items have no business in Continue Watching, so drop the row
@@ -930,10 +954,17 @@ class DiscoverProvider extends ChangeNotifier with DisposableChangeNotifierMixin
       // it. Marking a season or show watched takes its on-deck episode with
       // it, matching the parent-aware filter this subscription uses — the
       // series' successor comes back from the refetch (#1812).
+      //
+      // Refetch once the server has had time to rebuild its on-deck hub —
+      // refetching immediately returns the stale hub and the finished episode
+      // pops back instead of the next unwatched one.
       _evictFromOnDeck(
         (item) => item.id == event.itemId || item.parentId == event.itemId || item.grandparentId == event.itemId,
       );
+      refreshContinueWatchingWhenSettled();
+      return;
     }
+
     unawaited(refreshContinueWatching());
   }
 
@@ -1091,6 +1122,8 @@ class DiscoverProvider extends ChangeNotifier with DisposableChangeNotifierMixin
     _multiServer.removeOnlineServersListener(syncToOnlineServers);
     _hiddenLibraries.removeListener(_onHiddenLibrariesChanged);
     _libraries.removeListener(_onLibrariesChanged);
+    _continueWatchingSettleTimer?.cancel();
+    _continueWatchingSettleTimer = null;
     _watchStateSubscription?.cancel();
     _watchStateSubscription = null;
     _deletionSubscription?.cancel();
