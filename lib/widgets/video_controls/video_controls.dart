@@ -757,6 +757,14 @@ class _PlexVideoControlsState extends State<PlexVideoControls>
   int _subtitleVisibilityWriteGeneration = 0;
   // Skip marker button focus node (for TV D-pad navigation)
   late final FocusNode _skipMarkerFocusNode;
+  // Marker we just skipped past. The position stream is throttled, so the first
+  // tick after the seek can still land inside the marker we left; ignoring it
+  // until the position moves out keeps the button from flashing back with a
+  // fresh countdown.
+  MediaMarker? _suppressedSkipMarker;
+  // Markers already shown once, for the suppress-reappearance setting.
+  final Set<MediaMarker> _shownMarkers = {};
+  bool get _suppressSkipReappearance => _settings.read(SettingsService.suppressSkipReappearance);
   final ValueNotifier<bool> _fallbackHasFirstFrame = ValueNotifier<bool>(true);
   double? _rateBeforeLongPress;
   bool _showSpeedIndicator = false;
@@ -779,6 +787,7 @@ class _PlexVideoControlsState extends State<PlexVideoControls>
     _controlsOpaque = _lastControlsVisible;
     _focusNode = FocusNode();
     _skipMarkerFocusNode = FocusNode(debugLabel: 'SkipMarkerButton');
+    _skipMarkerFocusNode.addListener(_onSkipMarkerFocusChange);
     _seekThrottle = throttle(
       (Duration pos) {
         unawaited(_seekToTimelinePosition(pos));
@@ -816,6 +825,7 @@ class _PlexVideoControlsState extends State<PlexVideoControls>
       SettingsService.clickVideoTogglesPlayback,
       SettingsService.showChapterMarkersOnTimeline,
       SettingsService.selectShowsOsdTimeline,
+      SettingsService.suppressSkipReappearance,
     ]);
     widget.chromeController.addListener(_onChromeChanged);
     _configureChromeController();
@@ -896,6 +906,9 @@ class _PlexVideoControlsState extends State<PlexVideoControls>
         _markers = [];
         _markersLoaded = false;
       });
+      // Once-per-marker suppression is scoped to the item, not the widget.
+      _shownMarkers.clear();
+      _suppressedSkipMarker = null;
       _clearCurrentMarker();
       _loadPlaybackExtras();
     }
@@ -933,6 +946,7 @@ class _PlexVideoControlsState extends State<PlexVideoControls>
     _positionSubscription?.cancel();
     _rateSubscription?.cancel();
     _focusNode.dispose();
+    _skipMarkerFocusNode.removeListener(_onSkipMarkerFocusChange);
     _skipMarkerFocusNode.dispose();
     _fallbackHasFirstFrame.dispose();
     // Restore original rate if long-press was active when disposed
@@ -1310,7 +1324,13 @@ class _PlexVideoControlsState extends State<PlexVideoControls>
                         return isMobile ? 80.0 : 115.0;
                       }(),
                       child: AnimatedOpacity(
-                        opacity: 1.0,
+                        // Dim while unfocused during keyboard/D-pad navigation
+                        // (navigated down off it, or deactivated with Back), so
+                        // the button reads as inactive. Touch input has no
+                        // focus, so it stays fully opaque there.
+                        opacity: (InputModeTracker.isKeyboardMode(context) && !_skipMarkerFocusNode.hasFocus)
+                            ? 0.8
+                            : 1.0,
                         duration: tokens(context).slow,
                         child: _buildSkipMarkerButton(),
                       ),
