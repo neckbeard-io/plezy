@@ -717,6 +717,12 @@ class Translations$settings$en {
 	/// en: 'Click video to play/pause instead of showing controls.'
 	String get clickVideoTogglesPlaybackDescription => 'Click video to play/pause instead of showing controls.';
 
+	/// en: 'Plex-style OSD'
+	String get selectShowsOsdTimeline => 'Plex-style OSD';
+
+	/// en: 'OK/Select and Play/Pause show controls with the seek bar focused instead of toggling play/pause.'
+	String get selectShowsOsdTimelineDescription => 'OK/Select and Play/Pause show controls with the seek bar focused instead of toggling play/pause.';
+
 	/// en: 'Video Player Controls'
 	String get videoPlayerControls => 'Video Player Controls';
 
@@ -7231,6 +7237,8 @@ extension on Translations {
 			'settings.specialsOrderingLast' => 'After regular seasons',
 			'settings.clickVideoTogglesPlayback' => 'Click on video to toggle play/pause',
 			'settings.clickVideoTogglesPlaybackDescription' => 'Click video to play/pause instead of showing controls.',
+			'settings.selectShowsOsdTimeline' => 'Plex-style OSD',
+			'settings.selectShowsOsdTimelineDescription' => 'OK/Select and Play/Pause show controls with the seek bar focused instead of toggling play/pause.',
 			'settings.videoPlayerControls' => 'Video Player Controls',
 			'settings.keyboardShortcuts' => 'Keyboard Shortcuts',
 			'settings.keyboardShortcutsDescription' => 'Customize keyboard shortcuts',
@@ -7529,10 +7537,10 @@ extension on Translations {
 			'fileInfo.timeBase' => 'Time Base',
 			'fileInfo.overallBitrate' => 'Overall Bitrate',
 			'fileInfo.path' => 'Path',
-			'fileInfo.fileName' => 'File Name',
-			'fileInfo.size' => 'Size',
 			_ => null,
 		} ?? switch (path) {
+			'fileInfo.fileName' => 'File Name',
+			'fileInfo.size' => 'Size',
 			'fileInfo.totalSize' => 'Total Size',
 			'fileInfo.container' => 'Container',
 			'fileInfo.duration' => 'Duration',
@@ -8043,10 +8051,10 @@ extension on Translations {
 			'libraries.noCollections' => 'No collections in this library',
 			'libraries.noFoldersFound' => 'No folders found',
 			'libraries.folders' => 'folders',
-			'libraries.tabs.recommended' => 'Recommended',
-			'libraries.tabs.browse' => 'Browse',
 			_ => null,
 		} ?? switch (path) {
+			'libraries.tabs.recommended' => 'Recommended',
+			'libraries.tabs.browse' => 'Browse',
 			'libraries.tabs.collections' => 'Collections',
 			'libraries.tabs.playlists' => 'Playlists',
 			'libraries.groupings.title' => 'Grouping',
@@ -8557,10 +8565,10 @@ extension on Translations {
 			'downloads.queuedFilesTooltip' => ({required Object files}) => 'Queued ${files}',
 			'downloads.downloadingTooltip' => 'Downloading...',
 			'downloads.downloadingFilesTooltip' => ({required Object files}) => 'Downloading ${files}',
-			'downloads.noDownloadsTree' => 'No downloads',
-			'downloads.pauseAll' => 'Pause all',
 			_ => null,
 		} ?? switch (path) {
+			'downloads.noDownloadsTree' => 'No downloads',
+			'downloads.pauseAll' => 'Pause all',
 			'downloads.resumeAll' => 'Resume all',
 			'downloads.deleteAll' => 'Delete all',
 			'downloads.selectVersion' => 'Select Version',

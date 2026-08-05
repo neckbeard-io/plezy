@@ -65,6 +65,12 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
       _activateSkipMarker();
       return;
     }
+    // Plex-style: OK is purely "show me the OSD", parked on the seek bar. It
+    // must not toggle playback — that is what the Play/Pause key is for.
+    if (_selectShowsOsdTimeline) {
+      _showControlsWithTimelineFocus();
+      return;
+    }
     // Raise the chrome *before* toggling: Select is the deliberate "show me the
     // controls" affordance, and the visible chrome suppresses the transient
     // transport disc that would otherwise flash underneath it.
@@ -189,6 +195,15 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
       return false;
     }
 
+    // Safety net for TV/D-pad: Focus.onKeyEvent never fires once _focusNode has
+    // lost focus (Android system UI or a MediaSession overlay stole it, or we
+    // just came back from the background), which strands the remote entirely.
+    // The !hasFocus guard keeps this from double-handling anything the normal
+    // focus path already sees.
+    if (_videoPlayerNavigationEnabled && !_focusNode.hasFocus) {
+      if (_handleFocusLostFallback(event)) return true;
+    }
+
     // Only handle when video player navigation is disabled (desktop mode without D-pad nav)
     if (videoPlayerNavigationPreference()) return false;
 
@@ -214,6 +229,53 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
         _focusNode.requestFocus(); // self-heal focus
         return true;
       }
+    }
+
+    return false;
+  }
+
+  /// Reclaim focus and act on the transport/navigation keys that would
+  /// otherwise be dropped while `_focusNode` is unfocused. Mirrors what
+  /// [_handleControlsKeyEvent] would have done, so behaviour does not change
+  /// depending on who is holding focus. Returns true when the key was consumed.
+  bool _handleFocusLostFallback(KeyEvent event) {
+    final key = event.logicalKey;
+
+    final transportCommand = _playPauseActivation(event);
+    if (transportCommand != null) {
+      _focusNode.requestFocus();
+      unawaited(_playOrPause(command: transportCommand));
+      if (_selectShowsOsdTimeline) _showControlsWithTimelineFocus();
+      return true;
+    }
+
+    if (event is KeyDownEvent && _isSelectKey(key)) {
+      _focusNode.requestFocus();
+      _activateHiddenControlsPrimaryAction();
+      return true;
+    }
+
+    if (event is KeyDownEvent && (_isMediaSeekKey(key) || _isMediaTrackKey(key))) {
+      _focusNode.requestFocus();
+      if (widget.canControl) {
+        _seekToChapterWithFeedback(
+          forward:
+              key == LogicalKeyboardKey.mediaFastForward ||
+              key == LogicalKeyboardKey.mediaSkipForward ||
+              key == LogicalKeyboardKey.mediaTrackNext,
+        );
+      }
+      return true;
+    }
+
+    if (_isDirectionalKey(key) && event.isActionable) {
+      _focusNode.requestFocus();
+      if (_isHorizontalKey(key)) {
+        if (widget.canControl) unawaited(_seekByTime(forward: key == LogicalKeyboardKey.arrowRight));
+      } else {
+        _showControlsWithFocus();
+      }
+      return true;
     }
 
     return false;
@@ -263,6 +325,10 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
     if (transportCommand != null) {
       if ((videoPlayerNavigationPreference() || isMobile) && event is KeyDownEvent) {
         unawaited(_playOrPause(command: transportCommand));
+        // Plex-style: Play/Pause also raises the OSD on the seek bar, matching
+        // what the Plex TV client does. Default behaviour keeps the chrome
+        // down and announces the command with the transient disc (#1676).
+        if (_selectShowsOsdTimeline && !isMobile) _showControlsWithTimelineFocus();
       }
       return KeyEventResult.handled;
     }
@@ -320,20 +386,35 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
           if (shouldStartHiddenDirectionalSeek(event)) {
             _hiddenDirectionalSeek(forward: key == LogicalKeyboardKey.arrowRight, isRepeat: event is KeyRepeatEvent);
           }
+        } else if (_selectShowsOsdTimeline && key == LogicalKeyboardKey.arrowUp && _currentMarker != null) {
+          // Plex-style: with the chrome down the implicit position is the seek
+          // bar, so UP reaches the skip intro/credits button rather than
+          // opening the OSD — the same relationship the two have on screen.
+          _flushHiddenDirectionalSeek();
+          _focusSkipMarkerButton();
         } else {
           _flushHiddenDirectionalSeek();
           _showControlsWithFocus();
         }
         return KeyEventResult.handled;
       }
-      // Children (DesktopVideoControls) handle navigation first via their own
-      // onKeyEvent. Reaching here with the surface still focused means nothing
-      // in the chrome owns focus yet — hand it over instead of consuming the
-      // key into nothing. This is the same key that just switched the app into
-      // keyboard mode, so focus has to become visible or the two diverge.
+      // Controls are visible but nothing inside them owns focus yet — the
+      // post-frame focus request has not run, or focus was lost to the system.
+      // Children never see the key in that state, so route it here instead of
+      // consuming it into nothing.
       if (_focusNode.hasPrimaryFocus) {
-        _desktopControlsKey.currentState?.requestPlayPauseFocus();
+        if (_isHorizontalKey(key)) {
+          _desktopControlsKey.currentState?.requestTimelineFocus();
+          if (widget.canControl) unawaited(_seekByTime(forward: key == LogicalKeyboardKey.arrowRight));
+        } else if (_selectShowsOsdTimeline && key == LogicalKeyboardKey.arrowUp && _currentMarker != null) {
+          _focusSkipMarkerButton();
+        } else {
+          _desktopControlsKey.currentState?.requestTimelineFocus();
+        }
+        return KeyEventResult.handled;
       }
+      // Children (DesktopVideoControls) handle navigation first via their own onKeyEvent.
+      // If we reach here, children already declined the event — consume it to prevent leaking.
       return KeyEventResult.handled;
     }
 
