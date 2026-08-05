@@ -169,6 +169,8 @@ void main() {
     await SettingsService.getInstance();
     isBinding = false;
     shelfSyncs = [];
+    // Keep the post-scrobble settle wait out of test wall time.
+    DiscoverProvider.continueWatchingSettleDelay = const Duration(milliseconds: 10);
 
     client = _FakeClient();
     manager = MultiServerManager()..debugRegisterClientForTesting(client);
@@ -186,7 +188,14 @@ void main() {
     );
   });
 
+  /// Waits past the post-scrobble settle delay and drains what it schedules.
+  Future<void> pumpSettleDelay() async {
+    await Future<void>.delayed(DiscoverProvider.continueWatchingSettleDelay * 3);
+    await pumpEventQueue();
+  }
+
   tearDown(() {
+    DiscoverProvider.continueWatchingSettleDelay = const Duration(milliseconds: 800);
     provider.dispose();
     libraries.dispose();
     hiddenLibraries.dispose();
@@ -297,7 +306,7 @@ void main() {
     final hubCallsBefore = aggregation.hubCalls;
 
     WatchStateNotifier().notifyWatched(item: _item('ep-1', parentId: 'season-1'));
-    await pumpEventQueue();
+    await pumpSettleDelay();
 
     expect(aggregation.onDeckCalls, onDeckCallsBefore + 1);
     expect(aggregation.hubCalls, hubCallsBefore);
@@ -307,6 +316,38 @@ void main() {
 
     expect(aggregation.onDeckCalls, onDeckCallsBefore + 2);
     expect(aggregation.hubCalls, hubCallsBefore);
+  });
+
+  test('a watched event drops the row now and refetches only once the server settles', () async {
+    aggregation.onDeckResult = () => [_item('ep-1', parentId: 'season-1'), _item('ep-2')];
+    await provider.load();
+    final onDeckCallsBefore = aggregation.onDeckCalls;
+
+    WatchStateNotifier().notifyWatched(item: _item('ep-1', parentId: 'season-1'));
+    await pumpEventQueue();
+
+    // Immediate: the finished episode is gone from the row...
+    expect(provider.onDeck.map((item) => item.id), ['ep-2']);
+    // ...but no refetch yet — the server's on-deck hub is still stale, and
+    // refetching now would bring 'ep-1' straight back.
+    expect(aggregation.onDeckCalls, onDeckCallsBefore);
+
+    await pumpSettleDelay();
+
+    expect(aggregation.onDeckCalls, onDeckCallsBefore + 1);
+  });
+
+  test('a burst of watched events collapses onto a single settled refetch', () async {
+    aggregation.onDeckResult = () => [_item('ep-1'), _item('ep-2')];
+    await provider.load();
+    final onDeckCallsBefore = aggregation.onDeckCalls;
+
+    WatchStateNotifier().notifyWatched(item: _item('ep-1'));
+    await pumpEventQueue();
+    WatchStateNotifier().notifyWatched(item: _item('ep-2'));
+    await pumpSettleDelay();
+
+    expect(aggregation.onDeckCalls, onDeckCallsBefore + 1);
   });
 
   test('full, background, and delta publication forward the profile owner', () async {
@@ -386,7 +427,7 @@ void main() {
     final hubCallsBefore = aggregation.hubCalls;
 
     WatchStateNotifier().notifyProgress(item: playing, viewOffset: 95000, duration: 100000);
-    await pumpEventQueue();
+    await pumpSettleDelay();
 
     expect(aggregation.onDeckCalls, onDeckCallsBefore + 1);
     expect(aggregation.hubCalls, hubCallsBefore);
