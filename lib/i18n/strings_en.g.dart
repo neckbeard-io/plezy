@@ -639,6 +639,12 @@ class Translations$settings$en {
 	/// en: 'Click video to play/pause instead of showing controls.'
 	String get clickVideoTogglesPlaybackDescription => 'Click video to play/pause instead of showing controls.';
 
+	/// en: 'Plex-style OSD'
+	String get selectShowsOsdTimeline => 'Plex-style OSD';
+
+	/// en: 'OK/Select and Play/Pause show controls with the seek bar focused instead of toggling play/pause.'
+	String get selectShowsOsdTimelineDescription => 'OK/Select and Play/Pause show controls with the seek bar focused instead of toggling play/pause.';
+
 	/// en: 'Video Player Controls'
 	String get videoPlayerControls => 'Video Player Controls';
 
@@ -6224,6 +6230,8 @@ extension on Translations {
 			'settings.showChapterMarkersOnTimelineDescription' => 'Segment the seek bar at chapter boundaries',
 			'settings.clickVideoTogglesPlayback' => 'Click on video to toggle play/pause',
 			'settings.clickVideoTogglesPlaybackDescription' => 'Click video to play/pause instead of showing controls.',
+			'settings.selectShowsOsdTimeline' => 'Plex-style OSD',
+			'settings.selectShowsOsdTimelineDescription' => 'OK/Select and Play/Pause show controls with the seek bar focused instead of toggling play/pause.',
 			'settings.videoPlayerControls' => 'Video Player Controls',
 			'settings.keyboardShortcuts' => 'Keyboard Shortcuts',
 			'settings.keyboardShortcutsDescription' => 'Customize keyboard shortcuts',
@@ -6559,10 +6567,10 @@ extension on Translations {
 			'rateSheet.favorite' => 'Favorite',
 			'rateSheet.favorited' => 'Favorited',
 			'rateSheet.saved' => 'Saved',
-			'rateSheet.notAvailable' => 'No match found',
-			'rateSheet.noConnectedServices' => 'Connect a service in Settings to rate there.',
 			_ => null,
 		} ?? switch (path) {
+			'rateSheet.notAvailable' => 'No match found',
+			'rateSheet.noConnectedServices' => 'Connect a service in Settings to rate there.',
 			'accessibility.mediaCardMovie' => ({required Object title}) => '${title}, movie',
 			'accessibility.mediaCardShow' => ({required Object title}) => '${title}, TV show',
 			'accessibility.mediaCardEpisode' => ({required Object title, required Object episodeInfo}) => '${title}, ${episodeInfo}',
@@ -7073,10 +7081,10 @@ extension on Translations {
 			'explore.stats.dropRate' => ({required Object percent}) => '${percent} dropped it',
 			'explore.stats.comments' => ({required num n}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(n, one: '${n} comment', other: '${n} comments', ), 
 			'explore.stats.votes' => ({required Object n}) => '${n} votes',
-			'explore.stats.watching' => ({required Object n}) => '${n} watching it',
-			'explore.stats.completed' => ({required Object n}) => '${n} completed',
 			_ => null,
 		} ?? switch (path) {
+			'explore.stats.watching' => ({required Object n}) => '${n} watching it',
+			'explore.stats.completed' => ({required Object n}) => '${n} completed',
 			'explore.stats.onHold' => ({required Object n}) => '${n} on hold',
 			'explore.stats.dropped' => ({required Object n}) => '${n} dropped',
 			'explore.season.winter' => 'Winter',
@@ -7587,10 +7595,10 @@ extension on Translations {
 			'externalPlayer.systemDefault' => 'System Default',
 			'externalPlayer.addCustomPlayer' => 'Add Custom Player',
 			'externalPlayer.playerName' => 'Player Name',
-			'externalPlayer.playerNameHint' => 'My Player',
-			'externalPlayer.playerCommand' => 'Command',
 			_ => null,
 		} ?? switch (path) {
+			'externalPlayer.playerNameHint' => 'My Player',
+			'externalPlayer.playerCommand' => 'Command',
 			'externalPlayer.playerPackage' => 'Package Name',
 			'externalPlayer.playerUrlScheme' => 'URL Scheme',
 			'externalPlayer.off' => 'Off',

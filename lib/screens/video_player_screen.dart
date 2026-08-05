@@ -2135,7 +2135,9 @@ class VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindin
           final claimsChrome =
               !event.logicalKey.isDpadDirection || _videoPlayerNavigationEnabled || PlatformDetector.isTV();
           if (event.isActionable && claimsChrome) {
-            _chromeController.show(focusTarget: PlayerChromeFocusTarget.playPause);
+            // Timeline-first: the seek bar is the control a viewer wants under
+            // the cursor when the chrome self-heals back into focus.
+            _chromeController.show(focusTarget: PlayerChromeFocusTarget.timeline);
           }
           return event.logicalKey.isNavigationKey ? KeyEventResult.handled : KeyEventResult.ignored;
         }
