@@ -18,6 +18,7 @@ import '../../mixins/mounted_set_state_mixin.dart';
 import '../../mixins/refreshable.dart';
 import '../../providers/hidden_libraries_provider.dart';
 import '../../providers/download_provider.dart';
+import '../../providers/hidden_servers_provider.dart';
 import '../../providers/libraries_provider.dart';
 import '../../services/donation_service.dart';
 import '../../services/download_storage_service.dart';
@@ -52,6 +53,7 @@ import 'add_connection_screen.dart';
 import 'appearance_settings_screen.dart';
 import 'keyboard_shortcuts_screen.dart';
 import 'logs_screen.dart';
+import 'media_servers_screen.dart';
 import 'playback_settings_screen.dart';
 import '../profile/profile_switch_screen.dart';
 import 'services_settings_screen.dart';
@@ -93,6 +95,7 @@ class _SettingsScreenState extends State<SettingsScreen> with FocusableTab, Moun
   static const _kAppearance = 'appearance';
   static const _kPlayback = 'playback';
   static const _kManageLibraries = 'manage_libraries';
+  static const _kMediaServers = 'media_servers';
   static const _kServices = 'services';
   static const _kDownloadLocation = 'download_location';
   static const _kDownloadOnWifiOnly = 'download_on_wifi_only';
@@ -192,6 +195,7 @@ class _SettingsScreenState extends State<SettingsScreen> with FocusableTab, Moun
                     _buildAppearanceTile(),
                     _buildPlaybackTile(),
                     if (hasLibraries) _buildManageLibrariesTile(sheetContext),
+                    _buildMediaServersTile(),
                     _buildServicesTile(),
                   ],
                 ),
@@ -283,6 +287,16 @@ class _SettingsScreenState extends State<SettingsScreen> with FocusableTab, Moun
       title: t.libraries.manageLibraries,
       subtitle: t.settings.manageLibrariesDescription,
       onTap: () => showLibraryManagementSheet(context),
+    );
+  }
+
+  Widget _buildMediaServersTile() {
+    return SettingNavigationTile(
+      focusNode: _focusTracker.get(_kMediaServers),
+      icon: Symbols.dns_rounded,
+      title: t.settings.mediaServers,
+      subtitle: t.settings.mediaServersDescription,
+      destinationBuilder: (_) => const MediaServersScreen(),
     );
   }
 
@@ -798,6 +812,7 @@ class _SettingsScreenState extends State<SettingsScreen> with FocusableTab, Moun
 
           final themeProvider = context.read<ThemeProvider>();
           final hiddenLibrariesProvider = context.read<HiddenLibrariesProvider>();
+          final hiddenServersProvider = context.read<HiddenServersProvider>();
           final librariesProvider = context.read<LibrariesProvider>();
 
           // Import wrote directly to SharedPreferences, bypassing `write`. Push
@@ -807,6 +822,7 @@ class _SettingsScreenState extends State<SettingsScreen> with FocusableTab, Moun
           await Future.wait([
             themeProvider.reload(),
             hiddenLibrariesProvider.refresh(),
+            hiddenServersProvider.refresh(),
             if (_keyboardService != null) _keyboardService!.refreshFromStorage(),
           ]);
           unawaited(librariesProvider.refresh());
