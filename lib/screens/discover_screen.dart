@@ -587,11 +587,14 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     return 8.0; // Normal size
   }
 
-  // Public method to refresh content (for normal navigation)
+  // Public method to refresh content (for normal navigation, e.g. returning
+  // from the video player).
   @override
   void refresh() {
-    // Only refresh Continue Watching in background, not full screen reload
-    unawaited(_discover.refreshContinueWatching());
+    // Only refresh Continue Watching in background, not full screen reload.
+    // Deferred: returning from playback means a scrobble just landed, and the
+    // server needs a moment before its on-deck hub names the next episode.
+    _discover.refreshContinueWatchingWhenSettled();
   }
 
   // Public method to fully reload all content (for profile switches)
