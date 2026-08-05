@@ -789,6 +789,7 @@ class _PlexVideoControlsState extends State<PlexVideoControls>
   Timer? _lockIconTimer;
   bool get _clickVideoTogglesPlayback => _settings.read(SettingsService.clickVideoTogglesPlayback);
   bool get _showChapterMarkersOnTimeline => _settings.read(SettingsService.showChapterMarkersOnTimeline);
+  bool get _selectShowsOsdTimeline => _settings.read(SettingsService.selectShowsOsdTimeline);
   int _trafficLightVisibilityGeneration = 0;
 
   // GlobalKey to access DesktopVideoControls state for focus management
@@ -954,6 +955,7 @@ class _PlexVideoControlsState extends State<PlexVideoControls>
       SettingsService.autoHidePerformanceOverlay,
       SettingsService.clickVideoTogglesPlayback,
       SettingsService.showChapterMarkersOnTimeline,
+      SettingsService.selectShowsOsdTimeline,
     ]);
     // A marker kind switched Off while inside one of its markers must drop the
     // prompt now, not on the next position tick (paused playback never ticks).
