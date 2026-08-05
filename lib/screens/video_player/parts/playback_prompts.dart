@@ -144,6 +144,10 @@ extension _VideoPlayerPlaybackPromptMethods on VideoPlayerScreenState {
     _setPlayerState(() {
       _showPlayNextDialog = false;
     });
+    // The video is finished and the user declined the next episode, so there
+    // is nothing left to show — dismissing the prompt on its own just leaves a
+    // black screen parked at EOF. Leave the player instead.
+    unawaited(_handleBackButton());
   }
 
   void _dismissPlaybackPromptForBack() {
