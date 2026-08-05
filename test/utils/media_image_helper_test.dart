@@ -387,4 +387,78 @@ void main() {
       expect(MediaImageHelper.boundedDecode(base, memWidth: 0, memHeight: 0), same(base));
     });
   });
+
+  group('MediaImageHelper artwork cache key is endpoint-independent', () {
+    String keyFor(String url) => (MediaImageHelper.serverArtworkProvider(
+      imageUrl: url,
+      memWidth: 0,
+      memHeight: 0,
+    ) as CachedNetworkImageProvider).cacheKey!;
+
+    test('transcode URLs on different Plex endpoints share a key', () {
+      const endpointA =
+          'https://192-168-1-100.plex.direct:32400/photo/:/transcode?width=400&height=600&minSize=1&upscale=1'
+          '&url=%2Flibrary%2Fmetadata%2F123%2Fthumb%2F456%3FX-Plex-Token%3Dabc&X-Plex-Token=abc';
+      const endpointB =
+          'https://10-0-0-50.plex.direct:32400/photo/:/transcode?width=400&height=600&minSize=1&upscale=1'
+          '&url=%2Flibrary%2Fmetadata%2F123%2Fthumb%2F456%3FX-Plex-Token%3Dabc&X-Plex-Token=abc';
+
+      expect(keyFor(endpointA), keyFor(endpointB));
+    });
+
+    test('transcode URLs for different images keep distinct keys', () {
+      const imageA =
+          'https://192-168-1-100.plex.direct:32400/photo/:/transcode?width=400&height=600'
+          '&url=%2Flibrary%2Fmetadata%2F123%2Fthumb%2F456&X-Plex-Token=abc';
+      const imageB =
+          'https://192-168-1-100.plex.direct:32400/photo/:/transcode?width=400&height=600'
+          '&url=%2Flibrary%2Fmetadata%2F999%2Fthumb%2F789&X-Plex-Token=abc';
+
+      expect(keyFor(imageA), isNot(keyFor(imageB)));
+    });
+
+    test('transcode URLs at different bucketed sizes keep distinct keys', () {
+      const small =
+          'https://server.plex.direct:32400/photo/:/transcode?width=200&height=300'
+          '&url=%2Flibrary%2Fmetadata%2F123%2Fthumb%2F456&X-Plex-Token=abc';
+      const large =
+          'https://server.plex.direct:32400/photo/:/transcode?width=400&height=600'
+          '&url=%2Flibrary%2Fmetadata%2F123%2Fthumb%2F456&X-Plex-Token=abc';
+
+      expect(keyFor(small), isNot(keyFor(large)));
+    });
+
+    test('direct Plex URLs on different endpoints share a key', () {
+      expect(
+        keyFor('https://192-168-1-100.plex.direct:32400/library/metadata/123/thumb/456?X-Plex-Token=abc'),
+        keyFor('https://10-0-0-50.plex.direct:32400/library/metadata/123/thumb/456?X-Plex-Token=abc'),
+      );
+    });
+
+    test('Jellyfin URLs on different hosts share a key', () {
+      expect(
+        keyFor('https://jellyfin-a.local:8096/Items/abc/Images/Primary?maxWidth=400&maxHeight=600&api_key=xyz'),
+        keyFor('https://jellyfin-b.local:8096/Items/abc/Images/Primary?maxWidth=400&maxHeight=600&api_key=xyz'),
+      );
+    });
+
+    test('an explicit cacheKey still wins', () {
+      final provider =
+          MediaImageHelper.serverArtworkProvider(
+                imageUrl: 'https://server:32400/library/metadata/1/thumb/2',
+                memWidth: 0,
+                memHeight: 0,
+                cacheKey: 'explicit',
+              )
+              as CachedNetworkImageProvider;
+      expect(provider.cacheKey, 'explicit');
+    });
+
+    test('keys keep the plex_optimized_ prefix', () {
+      expect(
+        keyFor('https://server:32400/photo/:/transcode?width=400&height=600&url=%2Fthumb%2F1&X-Plex-Token=t'),
+        startsWith('plex_optimized_'),
+      );
+    });
+  });
 }
