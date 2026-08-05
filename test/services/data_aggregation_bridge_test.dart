@@ -247,6 +247,54 @@ void main() {
       expect(result.cancelledServerIds, {'torn-down'});
     });
 
+    test('hidden servers are dropped from every fan-out', () async {
+      final shown = testMediaItem(
+        id: 'shown-1',
+        backend: MediaBackend.plex,
+        kind: MediaKind.movie,
+        title: 'Target',
+        serverId: 'shown',
+      );
+      final buried = testMediaItem(
+        id: 'buried-1',
+        backend: MediaBackend.plex,
+        kind: MediaKind.movie,
+        title: 'Target',
+        serverId: 'buried',
+      );
+      manager.debugRegisterClientForTesting(
+        _LibrariesClient(
+          ServerId('shown'),
+          libraries: [MediaLibrary(id: '1', backend: MediaBackend.plex, title: 'Shown Movies', serverId: ServerId('shown'))],
+          searchResults: [shown],
+        ),
+      );
+      manager.debugRegisterClientForTesting(
+        _LibrariesClient(
+          ServerId('buried'),
+          libraries: [MediaLibrary(id: '2', backend: MediaBackend.plex, title: 'Buried Movies', serverId: ServerId('buried'))],
+          searchResults: [buried],
+        ),
+      );
+
+      // Baseline: both servers contribute.
+      expect((await service.getMediaLibrariesFromAllServers()).libraries, hasLength(2));
+
+      service.hiddenServerIds = {'buried'};
+
+      final libraries = await service.getMediaLibrariesFromAllServers();
+      expect(libraries.libraries.map((l) => l.title), ['Shown Movies']);
+      expect(libraries.succeededServerIds, {'shown'});
+
+      final search = await service.searchAcrossServers('Target');
+      expect(search.items.map((item) => item.id), ['shown-1']);
+      expect(search.succeededServerIds, {'shown'});
+
+      // A hidden server is absent, not failed — it must not look like an error.
+      expect(search.failedServerIds, isEmpty);
+      expect(search.cancelledServerIds, isEmpty);
+    });
+
     test('search classifies successful, cancelled, and failed servers independently', () async {
       final item = testMediaItem(
         id: 'show-1',
