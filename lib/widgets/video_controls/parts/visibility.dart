@@ -16,13 +16,15 @@ extension _PlexVideoControlsVisibilityMethods on _PlexVideoControlsState {
     }
   }
 
-  /// Focus play/pause button if we're in keyboard navigation mode (desktop/TV only)
+  /// Anchor focus on a real control in keyboard navigation mode (desktop/TV
+  /// only). Timeline-first: landing on the seek bar means the very next
+  /// LEFT/RIGHT scrubs, which is the common intent when the chrome comes up.
   void _focusPlayPauseIfKeyboardMode() {
     if (!mounted) return;
     if (!_videoPlayerNavigationEnabled) return;
     final isMobile = PlatformDetector.isMobile(context) && !PlatformDetector.isTV();
     if (!isMobile && InputModeTracker.isKeyboardMode(context)) {
-      _desktopControlsKey.currentState?.requestPlayPauseFocus();
+      _desktopControlsKey.currentState?.requestTimelineFocus();
     }
   }
 
@@ -227,13 +229,35 @@ extension _PlexVideoControlsVisibilityMethods on _PlexVideoControlsState {
     }
 
     if (_currentMarker != null) {
-      _skipMarkerFocusNode.requestFocus();
+      _focusSkipMarkerButton();
       return;
     }
 
     if (_showControls) {
       _hideControls();
     }
+  }
+
+  /// Focus the skip intro/credits button, un-dismissing it first when the 7s
+  /// no-interaction timer already hid it. The widget has to be back in the tree
+  /// before its focus node can take focus, so that case waits a frame.
+  void _focusSkipMarkerButton() {
+    if (_currentMarker == null) return;
+    if (_skipButtonDismissed) {
+      _setControlsState(() {
+        _skipButtonDismissed = false;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _skipMarkerFocusNode.requestFocus();
+      });
+      return;
+    }
+    _skipMarkerFocusNode.requestFocus();
+  }
+
+  /// Raise the chrome with the seek bar focused (Plex-style OSD).
+  void _showControlsWithTimelineFocus() {
+    widget.chromeController.show(focusTarget: PlayerChromeFocusTarget.timeline);
   }
 
   void _onChromeChanged() {
