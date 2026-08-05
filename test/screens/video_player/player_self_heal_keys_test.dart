@@ -12,9 +12,9 @@ import '../../test_helpers/mock_player_channels.dart';
 import '../../test_helpers/prefs.dart';
 
 /// Regression coverage for #1797: while the screen node holds primary focus,
-/// its self-heal answers an actionable key by raising the chrome onto the
-/// Play/Pause button. With "Video Player Navigation" off, arrows are playback
-/// shortcuts and must not be turned into a focus jump — but Tab is the
+/// its self-heal answers an actionable key by raising the chrome onto the seek
+/// bar (timeline-first focus). With "Video Player Navigation" off, arrows are
+/// playback shortcuts and must not be turned into a focus jump — but Tab is the
 /// deliberate way into the OSD and must keep working.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -31,24 +31,28 @@ void main() {
   });
 
   testWidgets('an arrow is left to the playback shortcuts when player navigation is off', (tester) async {
-    final focusedPlayPause = await _selfHealFocusesPlayPauseFor(tester, LogicalKeyboardKey.arrowLeft);
+    final target = await _selfHealTargetFor(tester, LogicalKeyboardKey.arrowLeft);
 
-    expect(focusedPlayPause, isFalse, reason: 'an arrow must seek, not pull focus onto Play/Pause');
+    expect(target, isNull, reason: 'an arrow must seek, not pull focus into the OSD');
   });
 
   testWidgets('Tab still walks into the player controls when player navigation is off', (tester) async {
-    final focusedPlayPause = await _selfHealFocusesPlayPauseFor(tester, LogicalKeyboardKey.tab);
+    final target = await _selfHealTargetFor(tester, LogicalKeyboardKey.tab);
 
-    expect(focusedPlayPause, isTrue, reason: 'Tab is the deliberate way into the OSD and must keep reaching it');
+    expect(
+      target,
+      PlayerChromeFocusTarget.timeline,
+      reason: 'Tab is the deliberate way into the OSD and must keep reaching it, seek bar first',
+    );
   });
 }
 
 /// Sends [key] to a freshly opened player route — whose screen node still owns
-/// primary focus, exactly as after a window re-activation — and reports whether
-/// its self-heal queued play/pause focus on the chrome.
-Future<bool> _selfHealFocusesPlayPauseFor(WidgetTester tester, LogicalKeyboardKey key) async {
+/// primary focus, exactly as after a window re-activation — and reports the
+/// focus target its self-heal queued on the chrome, if any.
+Future<PlayerChromeFocusTarget?> _selfHealTargetFor(WidgetTester tester, LogicalKeyboardKey key) async {
   final screenKey = GlobalKey<VideoPlayerScreenState>();
-  var focusedPlayPause = false;
+  PlayerChromeFocusTarget? target;
 
   await withMockPlayerChannels(
     methodChannelName: 'com.plezy/mpv_player',
@@ -71,17 +75,17 @@ Future<bool> _selfHealFocusesPlayPauseFor(WidgetTester tester, LogicalKeyboardKe
       final chrome = screenKey.currentState!.chromeController;
       // Drain anything the route queued while opening, so the assertion can
       // only see what this key press produced.
-      chrome.takePlayPauseFocus();
+      chrome.takeFocusTarget();
 
       await tester.sendKeyDownEvent(key);
       await tester.pump();
       await tester.sendKeyUpEvent(key);
       await tester.pump();
 
-      focusedPlayPause = chrome.takePlayPauseFocus();
+      target = chrome.takeFocusTarget();
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
 
-  return focusedPlayPause;
+  return target;
 }
