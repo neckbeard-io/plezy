@@ -115,12 +115,38 @@ class MultiServerProvider extends ChangeNotifier with DisposableChangeNotifierMi
     _refreshLiveTvAvailabilitySoon();
   }
 
-  /// Keep only ids the manager considers visible under the active filter.
-  List<String> _visible(List<String> ids) => ids.where((id) => _serverManager.isServerVisible(ServerId(id))).toList();
+  /// Servers the user hid in settings. Distinct from the profile's visibility
+  /// filter: that decides which servers the profile *has*, this is a display
+  /// preference on top. It deliberately does not reach [MultiServerManager],
+  /// so a hidden server still resolves downloads and direct navigation — it
+  /// just stops contributing to browse surfaces.
+  Set<String> _hiddenServerIds = const {};
+
+  Set<String> get hiddenServerIds => _hiddenServerIds;
+
+  /// Replace the hidden-server set and notify listeners. Idempotent.
+  void setHiddenServerIds(Set<String> ids) {
+    if (setEquals(_hiddenServerIds, ids)) return;
+    _hiddenServerIds = Set.of(ids);
+    _aggregationService.hiddenServerIds = _hiddenServerIds;
+    _pruneLiveTvServersForVisibility();
+    safeNotifyListeners();
+    _refreshLiveTvAvailabilitySoon();
+  }
+
+  bool isServerHidden(ServerId serverId) => _hiddenServerIds.contains(serverId);
+
+  /// Keep only ids the manager considers visible under the active filter and
+  /// that the user has not hidden.
+  List<String> _visible(List<String> ids) => ids
+      .where((id) => _serverManager.isServerVisible(ServerId(id)) && !_hiddenServerIds.contains(id))
+      .toList();
 
   void _pruneLiveTvServersForVisibility() {
-    if (_visibleServerIds == null) return;
-    _liveTvServers.removeWhere((s) => !_serverManager.isServerVisible(ServerId(s.serverId)));
+    if (_visibleServerIds == null && _hiddenServerIds.isEmpty) return;
+    _liveTvServers.removeWhere(
+      (s) => !_serverManager.isServerVisible(ServerId(s.serverId)) || _hiddenServerIds.contains(s.serverId),
+    );
     _hasLiveTv = _liveTvServers.isNotEmpty;
   }
 
@@ -203,13 +229,17 @@ class MultiServerProvider extends ChangeNotifier with DisposableChangeNotifierMi
   /// Plex servers that have no live client yet.
   List<String> get expectedServerIds {
     final expected = _expectedVisibleServerIds;
-    if (expected != null) return expected.toList(growable: false);
+    if (expected != null) {
+      return expected.where((id) => !_hiddenServerIds.contains(id)).toList(growable: false);
+    }
     return serverIds;
   }
 
   /// Check if a server is online (and visible under the active profile).
   bool isServerOnline(ServerId serverId) =>
-      _serverManager.isServerVisible(serverId) && _serverManager.isServerOnline(serverId);
+      _serverManager.isServerVisible(serverId) &&
+      !_hiddenServerIds.contains(serverId) &&
+      _serverManager.isServerOnline(serverId);
 
   /// Get number of online servers
   int get onlineServerCount => onlineServerIds.length;
@@ -229,7 +259,7 @@ class MultiServerProvider extends ChangeNotifier with DisposableChangeNotifierMi
   /// with HTTP 401/403 (token expired or revoked). UI uses this to show a
   /// "Sign in again" banner distinct from generic "Server offline".
   List<String> get authErrorServerIds {
-    final all = _serverManager.authErrorServerIds;
+    final all = _serverManager.authErrorServerIds.where((id) => !_hiddenServerIds.contains(id));
     final filter = _expectedVisibleServerIds ?? _visibleServerIds;
     if (filter == null) return all.toList();
     return all.where(filter.contains).toList();
