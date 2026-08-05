@@ -900,6 +900,21 @@ class Translations$settings$en {
 	/// en: 'Reorder and hide libraries'
 	String get manageLibrariesDescription => 'Reorder and hide libraries';
 
+	/// en: 'Media Servers'
+	String get mediaServers => 'Media Servers';
+
+	/// en: 'Choose which servers appear in browsing'
+	String get mediaServersDescription => 'Choose which servers appear in browsing';
+
+	/// en: 'No servers connected'
+	String get noMediaServers => 'No servers connected';
+
+	/// en: 'Owned'
+	String get ownedServer => 'Owned';
+
+	/// en: 'Shared with you'
+	String get sharedServer => 'Shared with you';
+
 	/// en: 'Companion Remote Server'
 	String get companionRemoteServer => 'Companion Remote Server';
 
@@ -6326,6 +6341,11 @@ extension on Translations {
 			'settings.services' => 'Services',
 			'settings.servicesDescription' => 'Connect Trakt, MyAnimeList, Seerr, and more',
 			'settings.manageLibrariesDescription' => 'Reorder and hide libraries',
+			'settings.mediaServers' => 'Media Servers',
+			'settings.mediaServersDescription' => 'Choose which servers appear in browsing',
+			'settings.noMediaServers' => 'No servers connected',
+			'settings.ownedServer' => 'Owned',
+			'settings.sharedServer' => 'Shared with you',
 			'settings.companionRemoteServer' => 'Companion Remote Server',
 			'settings.companionRemoteServerDescription' => 'Allow mobile devices on your network to control this app',
 			'settings.autoPip' => 'Auto Picture-in-Picture',
@@ -6571,13 +6591,13 @@ extension on Translations {
 			'mediaMenu.mediaDeletedSuccessfully' => 'Media item deleted successfully',
 			'mediaMenu.mediaFailedToDelete' => 'Failed to delete media item',
 			'mediaMenu.rate' => 'Rate',
+			_ => null,
+		} ?? switch (path) {
 			'mediaMenu.playFromBeginning' => 'Play from Beginning',
 			'mediaMenu.playVersion' => 'Play Version...',
 			'rateSheet.title' => 'Rate',
 			'rateSheet.server' => 'Server',
 			'rateSheet.favorite' => 'Favorite',
-			_ => null,
-		} ?? switch (path) {
 			'rateSheet.favorited' => 'Favorited',
 			'rateSheet.saved' => 'Saved',
 			'rateSheet.notAvailable' => 'No match found',
@@ -7085,13 +7105,13 @@ extension on Translations {
 			'explore.stats.viewersDay' => ({required Object n}) => '${n} watched today',
 			'explore.stats.viewersWeek' => ({required Object n}) => '${n} watched this week',
 			'explore.stats.viewersMonth' => ({required Object n}) => '${n} watched this month',
+			_ => null,
+		} ?? switch (path) {
 			'explore.stats.viewersYear' => ({required Object n}) => '${n} watched this year',
 			'explore.stats.viewersAllTime' => ({required Object n}) => '${n} viewers',
 			'explore.stats.planning' => ({required Object n}) => '${n} planning to watch',
 			'explore.stats.favorited' => ({required Object n}) => '${n} favorites',
 			'explore.stats.dropRate' => ({required Object percent}) => '${percent} dropped it',
-			_ => null,
-		} ?? switch (path) {
 			'explore.stats.comments' => ({required num n}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(n, one: '${n} comment', other: '${n} comments', ), 
 			'explore.stats.votes' => ({required Object n}) => '${n} votes',
 			'explore.stats.watching' => ({required Object n}) => '${n} watching it',
@@ -7599,13 +7619,13 @@ extension on Translations {
 			'performanceOverlay.player' => 'Player',
 			'performanceOverlay.memory' => 'Memory',
 			'performanceOverlay.uiFps' => 'UI FPS',
+			_ => null,
+		} ?? switch (path) {
 			'externalPlayer.title' => 'External Player',
 			'externalPlayer.useExternalPlayer' => 'Use External Player',
 			'externalPlayer.useExternalPlayerDescription' => 'Open videos in another app',
 			'externalPlayer.selectPlayer' => 'Select Player',
 			'externalPlayer.customPlayers' => 'Custom Players',
-			_ => null,
-		} ?? switch (path) {
 			'externalPlayer.systemDefault' => 'System Default',
 			'externalPlayer.addCustomPlayer' => 'Add Custom Player',
 			'externalPlayer.playerName' => 'Player Name',

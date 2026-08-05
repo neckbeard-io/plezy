@@ -92,14 +92,22 @@ class DataAggregationService {
 
   DataAggregationService(this._serverManager);
 
+  Set<String> _hiddenServerIds = const {};
+
+  /// Servers the user hid in settings. They stay connected — downloads and
+  /// direct navigation still resolve through them — but they contribute
+  /// nothing to any aggregated surface (hubs, on-deck, libraries, search).
+  set hiddenServerIds(Set<String> ids) => _hiddenServerIds = ids;
+
   /// Online clients, optionally restricted to [serverIds] — delta refreshes
-  /// fan out to newly-online servers only.
+  /// fan out to newly-online servers only. Hidden servers are dropped here, at
+  /// the one choke point every fan-out shares.
   Map<String, MediaServerClient> _clientsFor(Set<String>? serverIds) {
     final clients = _serverManager.onlineClients;
-    if (serverIds == null) return clients;
     return {
       for (final entry in clients.entries)
-        if (serverIds.contains(entry.key)) entry.key: entry.value,
+        if ((serverIds == null || serverIds.contains(entry.key)) && !_hiddenServerIds.contains(entry.key))
+          entry.key: entry.value,
     };
   }
 
@@ -592,7 +600,7 @@ class DataAggregationService {
     }
 
     abort?.throwIfAborted();
-    final clients = _serverManager.onlineClients;
+    final clients = _clientsFor(null);
     if (clients.isEmpty) {
       return (
         items: const <MediaItem>[],
@@ -664,6 +672,10 @@ class DataAggregationService {
     ExternalSeasonRef? season,
   }) async {
     if (!ids.hasAny && plexGuid == null) return [];
+    // Deliberately unfiltered by hidden servers: this is identity resolution
+    // for trackers/watchlist ("do I own this?"), not a browse surface. Hiding a
+    // server from browsing should not make its copy of an item invisible to a
+    // Trakt sync.
     final clients = _serverManager.onlineClients;
     if (clients.isEmpty) return [];
 
