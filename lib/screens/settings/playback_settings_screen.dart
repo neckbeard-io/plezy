@@ -326,6 +326,12 @@ class PlaybackSettingsScreen extends StatelessWidget {
         title: t.settings.forceSkipMarkerFallback,
         subtitle: t.settings.forceSkipMarkerFallbackDescription,
       ),
+      SettingSwitchTile(
+        pref: SettingsService.suppressSkipReappearance,
+        icon: Symbols.visibility_off_rounded,
+        title: t.settings.suppressSkipReappearance,
+        subtitle: t.settings.suppressSkipReappearanceDescription,
+      ),
       SettingNumberTile(
         pref: SettingsService.autoSkipDelay,
         icon: Symbols.timer_rounded,

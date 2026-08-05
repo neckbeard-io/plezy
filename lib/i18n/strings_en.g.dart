@@ -918,6 +918,12 @@ class Translations$settings$en {
 	/// en: 'Use chapter title patterns even when Plex has markers'
 	String get forceSkipMarkerFallbackDescription => 'Use chapter title patterns even when Plex has markers';
 
+	/// en: 'Suppress Skip Reappearance'
+	String get suppressSkipReappearance => 'Suppress Skip Reappearance';
+
+	/// en: 'Only show each skip button once per marker, even if it reappears in the timeline'
+	String get suppressSkipReappearanceDescription => 'Only show each skip button once per marker, even if it reappears in the timeline';
+
 	/// en: 'Auto Skip Delay'
 	String get autoSkipDelay => 'Auto Skip Delay';
 
@@ -7346,6 +7352,8 @@ extension on Translations {
 			'settings.skipMarkerModeAuto' => 'Automatic',
 			'settings.forceSkipMarkerFallback' => 'Force Fallback Markers',
 			'settings.forceSkipMarkerFallbackDescription' => 'Use chapter title patterns even when Plex has markers',
+			'settings.suppressSkipReappearance' => 'Suppress Skip Reappearance',
+			'settings.suppressSkipReappearanceDescription' => 'Only show each skip button once per marker, even if it reappears in the timeline',
 			'settings.autoSkipDelay' => 'Auto Skip Delay',
 			'settings.autoSkipDelayDescription' => ({required Object seconds}) => 'Wait ${seconds} seconds before auto-skipping',
 			'settings.introPattern' => 'Intro Marker Pattern',
@@ -7577,10 +7585,10 @@ extension on Translations {
 			'fileInfo.provider' => 'Provider',
 			'fileInfo.matchScore' => 'Match Score',
 			'fileInfo.externalDelivery' => 'Can Be Served Separately',
-			'fileInfo.sidecarPath' => 'Sidecar Path',
-			'fileInfo.sourceStream' => 'Copied From',
 			_ => null,
 		} ?? switch (path) {
+			'fileInfo.sidecarPath' => 'Sidecar Path',
+			'fileInfo.sourceStream' => 'Copied From',
 			'fileInfo.temporary' => 'Temporary',
 			'fileInfo.timeBase' => 'Time Base',
 			'fileInfo.overallBitrate' => 'Overall Bitrate',
@@ -8091,10 +8099,10 @@ extension on Translations {
 			'libraries.emptyTrashConfirm' => ({required Object title}) => 'Are you sure you want to empty trash for "${title}"?',
 			'libraries.manageLibraries' => 'Manage Libraries',
 			'libraries.sort' => 'Sort',
-			'libraries.sortBy' => 'Sort By',
-			'libraries.filters' => 'Filters',
 			_ => null,
 		} ?? switch (path) {
+			'libraries.sortBy' => 'Sort By',
+			'libraries.filters' => 'Filters',
 			'libraries.confirmActionMessage' => 'Are you sure you want to perform this action?',
 			'libraries.showLibrary' => 'Show library',
 			'libraries.hideLibrary' => 'Hide library',
@@ -8605,10 +8613,10 @@ extension on Translations {
 			'downloads.episodesQueued' => ({required Object count}) => '${count} episodes queued for download',
 			'downloads.downloadDeleted' => 'Download deleted',
 			'downloads.deleteConfirm' => ({required Object title}) => 'Delete "${title}" from this device?',
-			'downloads.cancelledDownloadTitle' => 'Canceled Download',
-			'downloads.cancelledDownloadMessage' => 'This download was canceled. What would you like to do?',
 			_ => null,
 		} ?? switch (path) {
+			'downloads.cancelledDownloadTitle' => 'Canceled Download',
+			'downloads.cancelledDownloadMessage' => 'This download was canceled. What would you like to do?',
 			'downloads.allEpisodesAlreadyDownloaded' => 'All episodes already downloaded',
 			'downloads.resumeDownload' => 'Resume download',
 			'downloads.cancelledDownload' => 'Canceled download',
