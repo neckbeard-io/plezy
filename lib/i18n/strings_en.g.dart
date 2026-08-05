@@ -1556,6 +1556,9 @@ class Translations$mediaMenu$en {
 	/// en: 'Go to series'
 	String get goToSeries => 'Go to series';
 
+	/// en: 'Go to season'
+	String get goToSeason => 'Go to season';
+
 	/// en: 'Shuffle Play'
 	String get shufflePlay => 'Shuffle Play';
 
@@ -2037,6 +2040,9 @@ class Translations$messages$en {
 
 	/// en: 'Error loading series'
 	String get errorLoadingSeries => 'Error loading series';
+
+	/// en: 'Error loading season'
+	String get errorLoadingSeason => 'Error loading season';
 
 	/// en: 'Music playback is not yet supported'
 	String get musicNotSupported => 'Music playback is not yet supported';
@@ -6536,6 +6542,7 @@ extension on Translations {
 			'mediaMenu.removeFromContinueWatching' => 'Remove from Continue Watching',
 			'mediaMenu.viewDetails' => 'View details',
 			'mediaMenu.goToSeries' => 'Go to series',
+			'mediaMenu.goToSeason' => 'Go to season',
 			'mediaMenu.shufflePlay' => 'Shuffle Play',
 			'mediaMenu.shuffleNotAvailableOffline' => 'Shuffle not available offline',
 			'mediaMenu.fileInfo' => 'File Info',
@@ -6554,9 +6561,9 @@ extension on Translations {
 			'rateSheet.saved' => 'Saved',
 			'rateSheet.notAvailable' => 'No match found',
 			'rateSheet.noConnectedServices' => 'Connect a service in Settings to rate there.',
-			'accessibility.mediaCardMovie' => ({required Object title}) => '${title}, movie',
 			_ => null,
 		} ?? switch (path) {
+			'accessibility.mediaCardMovie' => ({required Object title}) => '${title}, movie',
 			'accessibility.mediaCardShow' => ({required Object title}) => '${title}, TV show',
 			'accessibility.mediaCardEpisode' => ({required Object title, required Object episodeInfo}) => '${title}, ${episodeInfo}',
 			'accessibility.mediaCardSeason' => ({required Object title, required Object seasonInfo}) => '${title}, ${seasonInfo}',
@@ -6686,6 +6693,7 @@ extension on Translations {
 			'messages.playbackFailed' => 'Playback could not be started.',
 			'messages.errorLoadingFileInfo' => ({required Object error}) => 'Error loading file info: ${error}',
 			'messages.errorLoadingSeries' => 'Error loading series',
+			'messages.errorLoadingSeason' => 'Error loading season',
 			'messages.musicNotSupported' => 'Music playback is not yet supported',
 			'messages.noDescriptionAvailable' => 'No description available',
 			'messages.noProfilesAvailable' => 'No profiles available',
@@ -7067,10 +7075,10 @@ extension on Translations {
 			'explore.stats.votes' => ({required Object n}) => '${n} votes',
 			'explore.stats.watching' => ({required Object n}) => '${n} watching it',
 			'explore.stats.completed' => ({required Object n}) => '${n} completed',
-			'explore.stats.onHold' => ({required Object n}) => '${n} on hold',
-			'explore.stats.dropped' => ({required Object n}) => '${n} dropped',
 			_ => null,
 		} ?? switch (path) {
+			'explore.stats.onHold' => ({required Object n}) => '${n} on hold',
+			'explore.stats.dropped' => ({required Object n}) => '${n} dropped',
 			'explore.season.winter' => 'Winter',
 			'explore.season.spring' => 'Spring',
 			'explore.season.summer' => 'Summer',
@@ -7581,10 +7589,10 @@ extension on Translations {
 			'externalPlayer.playerName' => 'Player Name',
 			'externalPlayer.playerNameHint' => 'My Player',
 			'externalPlayer.playerCommand' => 'Command',
-			'externalPlayer.playerPackage' => 'Package Name',
-			'externalPlayer.playerUrlScheme' => 'URL Scheme',
 			_ => null,
 		} ?? switch (path) {
+			'externalPlayer.playerPackage' => 'Package Name',
+			'externalPlayer.playerUrlScheme' => 'URL Scheme',
 			'externalPlayer.off' => 'Off',
 			'externalPlayer.launchFailed' => 'Failed to open external player',
 			'externalPlayer.appNotInstalled' => ({required Object name}) => '${name} is not installed',
