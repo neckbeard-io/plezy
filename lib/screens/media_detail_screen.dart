@@ -316,6 +316,12 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
   final ValueNotifier<MediaItem?> _tvDetailFocusedEpisode = ValueNotifier(null);
   bool _tvDetailActionRowHasFocus = false;
 
+  // Per-episode cast: roles fetched via fetchItem for individual episodes.
+  // Guest stars differ per episode, so the cast hub follows rail focus when
+  // the server has episode-level credits and falls back to the show cast.
+  final Map<String, List<MediaRole>> _episodeRolesCache = {};
+  String? _episodeRolesFetchingId; // prevents duplicate in-flight fetches
+
   // Watchlist action (external catalog sources: Trakt, MAL). External ids
   // resolve once via the owning server, then per capable source; membership
   // comes from each source's session snapshot, so opening details never
@@ -4006,8 +4012,14 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
     }
     final actors = _tvDetailActorItems(metadata);
     if (actors.isNotEmpty) {
+      // Name the episode when the hub is showing that episode's own credits,
+      // so a shifting cast row is explained rather than surprising.
+      final focusedEpisode = _tvDetailFocusedEpisode.value;
+      final castTitle = _activeFocusedEpisodeRoles != null && focusedEpisode != null
+          ? '${t.discover.cast} – ${focusedEpisode.displayTitle}'
+          : t.discover.cast;
       hubs.add(
-        MediaHub(id: _tvDetailActorsHubId, title: t.discover.cast, type: 'person', items: actors, size: actors.length),
+        MediaHub(id: _tvDetailActorsHubId, title: castTitle, type: 'person', items: actors, size: actors.length),
       );
     }
     if (_extras != null && _extras!.isNotEmpty) {
@@ -4041,8 +4053,44 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
     return _onDeckEpisode?.id;
   }
 
+  /// Fetches per-episode roles for [episodeId] and caches them, then rebuilds
+  /// so the cast hub picks them up. Failures are silent — the show-level cast
+  /// stays on screen.
+  Future<void> _fetchEpisodeRoles(String episodeId) async {
+    if (_episodeRolesCache.containsKey(episodeId)) return;
+    if (_episodeRolesFetchingId == episodeId) return;
+    _episodeRolesFetchingId = episodeId;
+    try {
+      final client = _getMediaClientForMetadata(context);
+      if (client == null) return;
+      final item = await client.fetchItem(episodeId);
+      if (!mounted || _episodeRolesFetchingId != episodeId) return;
+      final roles = item?.roles;
+      if (roles != null && roles.isNotEmpty) {
+        _episodeRolesCache[episodeId] = roles;
+        // Only matters while that episode is still the focused one.
+        if (_tvDetailFocusedEpisode.value?.id == episodeId) setStateIfMounted(() {});
+      }
+    } catch (_) {
+      // Silently fail — show-level cast remains the fallback.
+    } finally {
+      if (_episodeRolesFetchingId == episodeId) {
+        _episodeRolesFetchingId = null;
+      }
+    }
+  }
+
+  /// Episode-level roles for the focused episode, or null when there are none
+  /// cached and the caller should fall back to the show/movie cast.
+  List<MediaRole>? get _activeFocusedEpisodeRoles {
+    final episodeId = _tvDetailFocusedEpisode.value?.id;
+    if (episodeId == null) return null;
+    return _episodeRolesCache[episodeId];
+  }
+
   List<MediaItem> _tvDetailActorItems(MediaItem metadata) {
-    final roles = metadata.roles;
+    // Prefer per-episode roles when the focused episode has its own credits.
+    final roles = _activeFocusedEpisodeRoles ?? metadata.roles;
     if (roles == null || roles.isEmpty) return const [];
 
     return [
@@ -4087,7 +4135,17 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
   }
 
   void _clearTvDetailFocusedEpisode() {
-    _tvDetailFocusedEpisode.value = null;
+    _setTvDetailFocusedEpisode(null);
+  }
+
+  /// The notifier repaints the info panel on its own, but the cast hub lives in
+  /// the hub list and only refreshes on a rebuild. Pay for that rebuild solely
+  /// when the visible cast actually changes, so ordinary d-pad scrubbing across
+  /// episodes keeps the notifier's rail-free repaint.
+  void _setTvDetailFocusedEpisode(MediaItem? episode) {
+    final previousRoles = _activeFocusedEpisodeRoles;
+    _tvDetailFocusedEpisode.value = episode;
+    if (!identical(previousRoles, _activeFocusedEpisodeRoles)) setStateIfMounted(() {});
   }
 
   void _setTvDetailActionRowFocus(bool hasFocus) {
@@ -4106,12 +4164,14 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
       _clearTvDetailFocusedEpisode();
       return;
     }
-    if (!_isTvDetailEpisodeHub(hub) || !item.isEpisode) {
-      _clearTvDetailFocusedEpisode();
-      return;
-    }
+    // Focus moving to a non-episode hub (cast, extras, related) keeps the
+    // focused episode, so its cast and description stay on screen while the
+    // user browses across.
+    if (!_isTvDetailEpisodeHub(hub) || !item.isEpisode) return;
     if (_tvDetailFocusedEpisode.value?.id == item.id) return;
-    _tvDetailFocusedEpisode.value = item;
+    _setTvDetailFocusedEpisode(item);
+    // Pull episode-level credits in the background; cached after first load.
+    if (!widget.isOffline) unawaited(_fetchEpisodeRoles(item.id));
     if (hub.id == 'detail_episodes') {
       if (!_allEpisodesPageError && _episodes.isNotEmpty && item.id == _episodes.last.id) {
         unawaited(_loadMoreAllEpisodes());
@@ -4127,10 +4187,8 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
   }
 
   void _handleTvDetailHubChanged(MediaHub hub, int index) {
-    if (!_isTvDetailEpisodeHub(hub)) {
-      _clearTvDetailFocusedEpisode();
-      return;
-    }
+    // As above: moving to a non-episode hub preserves the focused episode.
+    if (!_isTvDetailEpisodeHub(hub)) return;
     if (hub.items.isEmpty) _clearTvDetailFocusedEpisode();
     if (!hub.id.startsWith(_tvDetailSeasonHubIdPrefix)) return;
     final seasonIndex = int.tryParse(hub.id.substring(_tvDetailSeasonHubIdPrefix.length));
