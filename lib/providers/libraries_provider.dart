@@ -423,6 +423,12 @@ class LibrariesProvider extends ChangeNotifier with DisposableChangeNotifierMixi
   }
 
   /// Update the library order and persist it.
+  ///
+  /// Callers reorder what they were shown, and [libraries] hides libraries on
+  /// hidden servers — so the incoming list is a subset. Anything missing from
+  /// it is carried over rather than dropped, otherwise reordering while a
+  /// server is hidden would delete that server's libraries from both the list
+  /// and the saved order, and un-hiding it would come back empty.
   Future<void> updateLibraryOrder(
     List<MediaLibrary> orderedLibraries, {
     String? profileId,
@@ -430,6 +436,15 @@ class LibrariesProvider extends ChangeNotifier with DisposableChangeNotifierMixi
   }) async {
     if (isDisposed) return;
     final previousLibraries = _libraries;
+    final incomingKeys = {for (final lib in orderedLibraries) lib.globalKey};
+    final carriedOver = [
+      for (final lib in _libraries)
+        if (!incomingKeys.contains(lib.globalKey)) lib,
+    ];
+    final mergedLibraries = [...orderedLibraries, ...carriedOver];
+    _libraries = mergedLibraries;
+    safeNotifyListeners();
+
     // Save the new order
     var storage = _storageService;
     if (storage == null) {
@@ -439,13 +454,15 @@ class LibrariesProvider extends ChangeNotifier with DisposableChangeNotifierMixi
     }
     if (isDisposed) return;
     checkCurrent?.call();
-    final libraryKeys = orderedLibraries.map((lib) => lib.globalKey).toList();
+    // Persist the merged order, not just the visible slice, so a hidden
+    // server's libraries keep a saved position to come back to.
+    final libraryKeys = mergedLibraries.map((lib) => lib.globalKey).toList();
     await storage.saveLibraryOrder(libraryKeys, profileId: profileId);
 
     if (isDisposed) return;
     checkCurrent?.call();
     _libraries = identical(_libraries, previousLibraries)
-        ? List.from(orderedLibraries)
+        ? List.from(mergedLibraries)
         : _applyLibraryOrder(_libraries, libraryKeys);
     safeNotifyListeners();
     appLogger.d('LibrariesProvider: Updated library order');
