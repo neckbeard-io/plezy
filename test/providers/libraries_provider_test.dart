@@ -309,6 +309,43 @@ void main() {
       manager.dispose();
     });
 
+    test('reordering while a server is hidden keeps that server\'s libraries', () async {
+      final manager = MultiServerManager();
+      final clientA = _FakeClient(
+        serverId: ServerId('A'),
+        libraries: [_serverLib(ServerId('A'), '1', 'Movies A'), _serverLib(ServerId('A'), '2', 'Shows A')],
+      );
+      final clientB = _FakeClient(serverId: ServerId('B'), libraries: [_serverLib(ServerId('B'), '3', 'Movies B')]);
+      manager.debugRegisterClientForTesting(clientA);
+      manager.debugRegisterClientForTesting(clientB);
+      final aggregation = DataAggregationService(manager);
+      final multiServer = MultiServerProvider(manager, aggregation);
+      final p = LibrariesProvider(multiServer: multiServer)..initialize(aggregation);
+
+      await p.syncToOnlineServers({'A', 'B'});
+      multiServer.setHiddenServerIds({'B'});
+      await pumpEventQueue();
+
+      // The management sheet only ever sees the visible slice.
+      final visible = p.libraries.toList();
+      expect(visible.map((l) => l.title), ['Movies A', 'Shows A']);
+      await p.updateLibraryOrder(visible.reversed.toList());
+
+      expect(p.libraries.map((l) => l.title), ['Shows A', 'Movies A']);
+
+      // B's library must survive the write-back and reappear on un-hide.
+      multiServer.setHiddenServerIds(const {});
+      await pumpEventQueue();
+      expect(p.libraries.map((l) => l.title), containsAll(['Movies A', 'Shows A', 'Movies B']));
+
+      final storage = await StorageService.getInstance();
+      expect(storage.getLibraryOrder(), contains(_serverLib(ServerId('B'), '3', 'Movies B').globalKey));
+
+      p.dispose();
+      multiServer.dispose();
+      manager.dispose();
+    });
+
     test('un-hiding a server fetches it when it was skipped at load time', () async {
       final manager = MultiServerManager();
       final clientA = _FakeClient(serverId: ServerId('A'), libraries: [_serverLib(ServerId('A'), '1', 'Movies A')]);
