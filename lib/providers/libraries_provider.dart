@@ -33,6 +33,12 @@ class LibrariesProvider extends ChangeNotifier with DisposableChangeNotifierMixi
     // Server push events mark affected libraries stale; tabs consume the
     // epoch when they are next shown. Cancelled in [dispose].
     _libraryEventSubscription = LibraryContentNotifier().stream.listen(_onLibraryContentChanged);
+    // Hiding a server must take effect on lists that are already loaded, and
+    // un-hiding one has to fetch it if it was skipped at load time. The
+    // online-servers listener above only fires on the manager's status stream,
+    // which a visibility change never touches.
+    _multiServer?.addListener(_onServerVisibilityChanged);
+    _lastSeenHiddenServerIds = Set.of(_multiServer?.hiddenServerIds ?? const <String>{});
   }
 
   static bool _neverBinding() => false;
@@ -63,7 +69,35 @@ class LibrariesProvider extends ChangeNotifier with DisposableChangeNotifierMixi
   Set<String> _loadedServerIds = {};
 
   /// Unmodifiable list of all libraries (ordered)
-  List<MediaLibrary> get libraries => List.unmodifiable(_libraries);
+  /// Libraries on visible servers.
+  ///
+  /// Hidden servers are filtered here rather than at each call site, so the
+  /// sidebar, the libraries screen, the quick picker and the management sheet
+  /// all agree. The aggregation service also skips hidden servers when
+  /// fetching, but that only governs *new* fetches — a list loaded before a
+  /// server was hidden would otherwise keep showing it forever.
+  List<MediaLibrary> get libraries {
+    final hidden = _multiServer?.hiddenServerIds ?? const <String>{};
+    if (hidden.isEmpty) return List.unmodifiable(_libraries);
+    return List.unmodifiable(_libraries.where((lib) => !hidden.contains(lib.serverId)));
+  }
+
+  Set<String> _lastSeenHiddenServerIds = const {};
+
+  void _onServerVisibilityChanged() {
+    final hidden = _multiServer?.hiddenServerIds ?? const <String>{};
+    if (setEquals(hidden, _lastSeenHiddenServerIds)) return;
+    final unhidden = _lastSeenHiddenServerIds.difference(hidden);
+    _lastSeenHiddenServerIds = Set.of(hidden);
+    // Re-read of the filtered getter is enough for a newly hidden server.
+    safeNotifyListeners();
+    // A server that was hidden when the last pass ran contributed nothing, so
+    // un-hiding it needs a real fetch before it can appear.
+    if (unhidden.isNotEmpty && _multiServer != null) {
+      final toLoad = unhidden.intersection(_multiServer.onlineServerIds.toSet());
+      if (toLoad.isNotEmpty) unawaited(syncToOnlineServers(toLoad));
+    }
+  }
 
   /// Whether libraries are currently being loaded
   bool get isLoading => _loadState == LibrariesLoadState.loading;
@@ -424,6 +458,7 @@ class LibrariesProvider extends ChangeNotifier with DisposableChangeNotifierMixi
   @override
   void dispose() {
     _multiServer?.removeOnlineServersListener(syncToOnlineServers);
+    _multiServer?.removeListener(_onServerVisibilityChanged);
     _libraryEventSubscription?.cancel();
     _libraryEventSubscription = null;
     _loadCoordinator.dispose();
