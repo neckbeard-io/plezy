@@ -118,6 +118,8 @@ class DiscoverProvider extends ChangeNotifier with DisposableChangeNotifierMixin
     // discover the same way they refresh libraries. Removed in [dispose] so a
     // profile switch can't leave a stale listener on the app-global provider.
     _multiServer.addOnlineServersListener(syncToOnlineServers);
+    _multiServer.addListener(_onServerVisibilityChanged);
+    _lastSeenHiddenServerIds = Set.of(_multiServer.hiddenServerIds);
     _hiddenLibraries.addListener(_onHiddenLibrariesChanged);
     _lastSeenLibraryOrderKeys = _libraryOrderKeys();
     _libraries.addListener(_onLibrariesChanged);
@@ -987,6 +989,19 @@ class DiscoverProvider extends ChangeNotifier with DisposableChangeNotifierMixin
     }
   }
 
+  /// Hubs and on-deck are provider-cached, so a server hidden after they were
+  /// fetched would keep contributing rows until something else forced a
+  /// reload. The aggregation filter only governs the next fetch — this is what
+  /// asks for one.
+  void _onServerVisibilityChanged() {
+    final hidden = _multiServer.hiddenServerIds;
+    if (setEquals(hidden, _lastSeenHiddenServerIds)) return;
+    _lastSeenHiddenServerIds = Set.of(hidden);
+    unawaited(load());
+  }
+
+  Set<String> _lastSeenHiddenServerIds = const {};
+
   void _onHiddenLibrariesChanged() {
     final currentKeys = _hiddenLibraries.hiddenLibraryKeys;
     if (currentKeys.length == _lastSeenHiddenKeys.length && currentKeys.containsAll(_lastSeenHiddenKeys)) {
@@ -1089,6 +1104,7 @@ class DiscoverProvider extends ChangeNotifier with DisposableChangeNotifierMixin
   @override
   void dispose() {
     _multiServer.removeOnlineServersListener(syncToOnlineServers);
+    _multiServer.removeListener(_onServerVisibilityChanged);
     _hiddenLibraries.removeListener(_onHiddenLibrariesChanged);
     _libraries.removeListener(_onLibrariesChanged);
     _watchStateSubscription?.cancel();
