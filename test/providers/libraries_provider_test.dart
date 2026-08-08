@@ -8,6 +8,7 @@ import 'package:plezy/media/media_kind.dart';
 import 'package:plezy/media/media_library.dart';
 import 'package:plezy/media/media_server_client.dart';
 import 'package:plezy/providers/libraries_provider.dart';
+import 'package:plezy/providers/multi_server_provider.dart';
 import 'package:plezy/services/data_aggregation_service.dart';
 import 'package:plezy/services/multi_server_manager.dart';
 import 'package:plezy/services/storage_service.dart';
@@ -275,6 +276,63 @@ void main() {
       expect(p.libraryLabelFor(testMediaItem(serverId: 'A')), isNull);
 
       p.dispose();
+    });
+  });
+
+  group('LibrariesProvider hidden servers', () {
+    test('hiding a server drops its libraries from an already-loaded list', () async {
+      final manager = MultiServerManager();
+      final clientA = _FakeClient(serverId: ServerId('A'), libraries: [_serverLib(ServerId('A'), '1', 'Movies A')]);
+      final clientB = _FakeClient(serverId: ServerId('B'), libraries: [_serverLib(ServerId('B'), '2', 'Movies B')]);
+      manager.debugRegisterClientForTesting(clientA);
+      manager.debugRegisterClientForTesting(clientB);
+      final aggregation = DataAggregationService(manager);
+      final multiServer = MultiServerProvider(manager, aggregation);
+      final p = LibrariesProvider(multiServer: multiServer)..initialize(aggregation);
+
+      await p.syncToOnlineServers({'A', 'B'});
+      expect(p.libraries.map((l) => l.title), ['Movies A', 'Movies B']);
+
+      var notified = 0;
+      p.addListener(() => notified++);
+
+      // The regression: the list was already fetched, so filtering only on
+      // fetch left B's libraries on screen forever.
+      multiServer.setHiddenServerIds({'B'});
+      await pumpEventQueue();
+
+      expect(p.libraries.map((l) => l.title), ['Movies A']);
+      expect(notified, greaterThanOrEqualTo(1), reason: 'consumers must be told to re-read');
+
+      p.dispose();
+      multiServer.dispose();
+      manager.dispose();
+    });
+
+    test('un-hiding a server fetches it when it was skipped at load time', () async {
+      final manager = MultiServerManager();
+      final clientA = _FakeClient(serverId: ServerId('A'), libraries: [_serverLib(ServerId('A'), '1', 'Movies A')]);
+      final clientB = _FakeClient(serverId: ServerId('B'), libraries: [_serverLib(ServerId('B'), '2', 'Movies B')]);
+      manager.debugRegisterClientForTesting(clientA);
+      manager.debugRegisterClientForTesting(clientB);
+      final aggregation = DataAggregationService(manager);
+      final multiServer = MultiServerProvider(manager, aggregation);
+      multiServer.setHiddenServerIds({'B'});
+      final p = LibrariesProvider(multiServer: multiServer)..initialize(aggregation);
+
+      await p.syncToOnlineServers({'A', 'B'});
+      expect(p.libraries.map((l) => l.title), ['Movies A']);
+      expect(clientB.fetchLibrariesCalls, 0, reason: 'a hidden server is never fetched');
+
+      multiServer.setHiddenServerIds(const {});
+      await pumpEventQueue();
+
+      expect(clientB.fetchLibrariesCalls, 1, reason: 'un-hiding must fetch what was skipped');
+      expect(p.libraries.map((l) => l.title), containsAll(['Movies A', 'Movies B']));
+
+      p.dispose();
+      multiServer.dispose();
+      manager.dispose();
     });
   });
 
