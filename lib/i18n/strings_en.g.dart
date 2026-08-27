@@ -837,6 +837,12 @@ class Translations$settings$en {
 	/// en: 'Use chapter title patterns even when Plex has markers'
 	String get forceSkipMarkerFallbackDescription => 'Use chapter title patterns even when Plex has markers';
 
+	/// en: 'Suppress Skip Reappearance'
+	String get suppressSkipReappearance => 'Suppress Skip Reappearance';
+
+	/// en: 'Only show each skip button once per marker, even if it reappears in the timeline'
+	String get suppressSkipReappearanceDescription => 'Only show each skip button once per marker, even if it reappears in the timeline';
+
 	/// en: 'Auto Skip Delay'
 	String get autoSkipDelay => 'Auto Skip Delay';
 
@@ -7061,6 +7067,8 @@ extension on Translations {
 			'settings.autoSkipCreditsDescription' => 'Automatically skip credits and play next episode',
 			'settings.forceSkipMarkerFallback' => 'Force Fallback Markers',
 			'settings.forceSkipMarkerFallbackDescription' => 'Use chapter title patterns even when Plex has markers',
+			'settings.suppressSkipReappearance' => 'Suppress Skip Reappearance',
+			'settings.suppressSkipReappearanceDescription' => 'Only show each skip button once per marker, even if it reappears in the timeline',
 			'settings.autoSkipDelay' => 'Auto Skip Delay',
 			'settings.autoSkipDelayDescription' => ({required Object seconds}) => 'Wait ${seconds} seconds before auto-skipping',
 			'settings.introPattern' => 'Intro Marker Pattern',
@@ -7319,10 +7327,10 @@ extension on Translations {
 			'mediaMenu.markAsWatched' => 'Mark as Watched',
 			'mediaMenu.markAsUnwatched' => 'Mark as Unwatched',
 			'mediaMenu.removeFromContinueWatching' => 'Remove from Continue Watching',
-			'mediaMenu.viewDetails' => 'View details',
-			'mediaMenu.goToSeries' => 'Go to series',
 			_ => null,
 		} ?? switch (path) {
+			'mediaMenu.viewDetails' => 'View details',
+			'mediaMenu.goToSeries' => 'Go to series',
 			'mediaMenu.goToSeason' => 'Go to season',
 			'mediaMenu.shufflePlay' => 'Shuffle Play',
 			'mediaMenu.shuffleNotAvailableOffline' => 'Shuffle not available offline',
@@ -7833,10 +7841,10 @@ extension on Translations {
 			'about.title' => 'About',
 			'about.openSourceLicenses' => 'Open Source Licenses',
 			'about.versionLabel' => ({required Object version}) => 'Version ${version}',
-			'about.appDescription' => 'A beautiful Plex, Jellyfin, and Emby client for Flutter',
-			'about.viewLicensesDescription' => 'View licenses of third-party libraries',
 			_ => null,
 		} ?? switch (path) {
+			'about.appDescription' => 'A beautiful Plex, Jellyfin, and Emby client for Flutter',
+			'about.viewLicensesDescription' => 'View licenses of third-party libraries',
 			'serverSelection.noServersFoundForAccount' => ({required Object username, required Object email}) => 'No servers found for ${username} (${email})',
 			'serverSelection.failedToLoadServers' => ({required Object error}) => 'Failed to load servers: ${error}',
 			'serverSelection.noValidServers' => 'No usable servers were found on this account',
@@ -8347,10 +8355,10 @@ extension on Translations {
 			'downloads.backgroundWarning.dialogTitle' => 'Downloads may not finish',
 			'downloads.backgroundWarning.dialogDownloadAnyway' => 'Download anyway',
 			'downloads.backgroundWarning.dialogFixFirst' => 'Fix this first',
-			'downloads.backgroundWarning.statusTile' => 'Background downloads',
-			'downloads.backgroundWarning.statusOk' => 'Allowed to run in the background',
 			_ => null,
 		} ?? switch (path) {
+			'downloads.backgroundWarning.statusTile' => 'Background downloads',
+			'downloads.backgroundWarning.statusOk' => 'Allowed to run in the background',
 			'downloads.backgroundWarning.statusBlocked' => 'Blocked by system settings',
 			'downloads.backgroundWarning.statusDegraded' => 'Limited by system settings',
 			'downloads.backgroundWarning.statusUnknown' => 'Not checked yet',
