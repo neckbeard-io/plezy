@@ -678,6 +678,12 @@ class Translations$settings$en {
 	/// en: 'Click video to play/pause instead of showing controls.'
 	String get clickVideoTogglesPlaybackDescription => 'Click video to play/pause instead of showing controls.';
 
+	/// en: 'Plex-style OSD'
+	String get selectShowsOsdTimeline => 'Plex-style OSD';
+
+	/// en: 'OK/Select and Play/Pause show controls with the seek bar focused instead of toggling play/pause.'
+	String get selectShowsOsdTimelineDescription => 'OK/Select and Play/Pause show controls with the seek bar focused instead of toggling play/pause.';
+
 	/// en: 'Video Player Controls'
 	String get videoPlayerControls => 'Video Player Controls';
 
@@ -7002,6 +7008,8 @@ extension on Translations {
 			'settings.specialsOrderingLast' => 'After regular seasons',
 			'settings.clickVideoTogglesPlayback' => 'Click on video to toggle play/pause',
 			'settings.clickVideoTogglesPlaybackDescription' => 'Click video to play/pause instead of showing controls.',
+			'settings.selectShowsOsdTimeline' => 'Plex-style OSD',
+			'settings.selectShowsOsdTimelineDescription' => 'OK/Select and Play/Pause show controls with the seek bar focused instead of toggling play/pause.',
 			'settings.videoPlayerControls' => 'Video Player Controls',
 			'settings.keyboardShortcuts' => 'Keyboard Shortcuts',
 			'settings.keyboardShortcutsDescription' => 'Customize keyboard shortcuts',
@@ -7313,10 +7321,10 @@ extension on Translations {
 			'mediaMenu.removeFromContinueWatching' => 'Remove from Continue Watching',
 			'mediaMenu.viewDetails' => 'View details',
 			'mediaMenu.goToSeries' => 'Go to series',
-			'mediaMenu.goToSeason' => 'Go to season',
-			'mediaMenu.shufflePlay' => 'Shuffle Play',
 			_ => null,
 		} ?? switch (path) {
+			'mediaMenu.goToSeason' => 'Go to season',
+			'mediaMenu.shufflePlay' => 'Shuffle Play',
 			'mediaMenu.shuffleNotAvailableOffline' => 'Shuffle not available offline',
 			'mediaMenu.fileInfo' => 'File Info',
 			'mediaMenu.deleteEpisodeFromServer' => 'Delete episode from server',
@@ -7827,10 +7835,10 @@ extension on Translations {
 			'about.versionLabel' => ({required Object version}) => 'Version ${version}',
 			'about.appDescription' => 'A beautiful Plex, Jellyfin, and Emby client for Flutter',
 			'about.viewLicensesDescription' => 'View licenses of third-party libraries',
-			'serverSelection.noServersFoundForAccount' => ({required Object username, required Object email}) => 'No servers found for ${username} (${email})',
-			'serverSelection.failedToLoadServers' => ({required Object error}) => 'Failed to load servers: ${error}',
 			_ => null,
 		} ?? switch (path) {
+			'serverSelection.noServersFoundForAccount' => ({required Object username, required Object email}) => 'No servers found for ${username} (${email})',
+			'serverSelection.failedToLoadServers' => ({required Object error}) => 'Failed to load servers: ${error}',
 			'serverSelection.noValidServers' => 'No usable servers were found on this account',
 			'hubDetail.title' => 'Title',
 			'hubDetail.releaseYear' => 'Release Year',
@@ -8341,10 +8349,10 @@ extension on Translations {
 			'downloads.backgroundWarning.dialogFixFirst' => 'Fix this first',
 			'downloads.backgroundWarning.statusTile' => 'Background downloads',
 			'downloads.backgroundWarning.statusOk' => 'Allowed to run in the background',
-			'downloads.backgroundWarning.statusBlocked' => 'Blocked by system settings',
-			'downloads.backgroundWarning.statusDegraded' => 'Limited by system settings',
 			_ => null,
 		} ?? switch (path) {
+			'downloads.backgroundWarning.statusBlocked' => 'Blocked by system settings',
+			'downloads.backgroundWarning.statusDegraded' => 'Limited by system settings',
 			'downloads.backgroundWarning.statusUnknown' => 'Not checked yet',
 			'downloads.backgroundWarning.settingsUnavailable' => 'Couldn\'t open system settings on this device',
 			'downloads.backgroundWarning.linkUnavailable' => 'Couldn\'t open dontkillmyapp.com on this device',

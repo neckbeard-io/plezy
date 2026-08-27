@@ -274,6 +274,13 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
           title: t.settings.clickVideoTogglesPlayback,
           subtitle: t.settings.clickVideoTogglesPlaybackDescription,
         ),
+      if (!isMobile)
+        SettingSwitchTile(
+          pref: SettingsService.selectShowsOsdTimeline,
+          icon: Symbols.radio_button_checked_rounded,
+          title: t.settings.selectShowsOsdTimeline,
+          subtitle: t.settings.selectShowsOsdTimelineDescription,
+        ),
     ],
   );
 

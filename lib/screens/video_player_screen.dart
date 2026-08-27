@@ -2347,9 +2347,13 @@ class VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindin
             // suppressed. For an arrow this already answers "did the viewer opt
             // into player navigation", because the screen node owns arrows
             // exactly while that setting is off.
+            // Timeline-first: landing on the seek bar means the very next
+            // LEFT/RIGHT scrubs, which is the common intent.
             final navigating = eventRequestsFocusNavigation(event, focused: node);
             if (!event.logicalKey.isDpadDirection || navigating) {
-              _chromeController.show(focusPlayPause: navigating);
+              _chromeController.show(
+                focusTarget: navigating ? PlayerChromeFocusTarget.timeline : null,
+              );
             }
           }
           return event.logicalKey.isReservedControlKey ? KeyEventResult.handled : KeyEventResult.ignored;
