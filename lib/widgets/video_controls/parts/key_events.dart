@@ -113,13 +113,6 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
       return handlePlayerNavigationKeyAction(event, navigationKey, sheetController!.pop);
     }
 
-    // With the skip intro/credits button focused, Back acts on it first —
-    // cancel a running countdown, else deactivate the button — rather than
-    // hiding the controls or leaving the player.
-    if (navigationKey == PlayerNavigationKey.back && _skipMarkerOwnsBack) {
-      return handlePlayerNavigationKeyAction(event, navigationKey, _handleSkipMarkerBack);
-    }
-
     if (widget.chromeController.contentStripVisible) {
       return handlePlayerNavigationKeyAction(event, navigationKey, () {
         _desktopControlsKey.currentState?.dismissContentStrip();
@@ -224,7 +217,7 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
     // just came back from the background), which strands the remote entirely.
     // The !hasFocus guard keeps this from double-handling anything the normal
     // focus path already sees.
-    if (_videoPlayerNavigationEnabled && !_focusNode.hasFocus) {
+    if (videoPlayerNavigationPreference() && !_focusNode.hasFocus) {
       if (_handleFocusLostFallback(event)) return true;
     }
 
@@ -275,7 +268,7 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
 
     if (event is KeyDownEvent && _isSelectKey(key)) {
       _focusNode.requestFocus();
-      _activateHiddenControlsPrimaryAction();
+      _activatePlayerSurfaceSelect(requestFocus: eventRequestsFocusNavigation(event, focused: _focusNode));
       return true;
     }
 
@@ -432,12 +425,20 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
       // consuming it into nothing.
       if (_focusNode.hasPrimaryFocus) {
         if (_isHorizontalKey(key)) {
-          _desktopControlsKey.currentState?.requestTimelineFocus();
+          if (_selectShowsOsdTimeline) {
+            _desktopControlsKey.currentState?.requestTimelineFocus();
+          } else {
+            _desktopControlsKey.currentState?.requestPlayPauseFocus();
+          }
           if (widget.canControl) unawaited(_seekByTime(forward: key == LogicalKeyboardKey.arrowRight));
         } else if (_selectShowsOsdTimeline && key == LogicalKeyboardKey.arrowUp && _currentMarker != null) {
           _focusSkipMarkerButton();
         } else {
-          _desktopControlsKey.currentState?.requestTimelineFocus();
+          if (_selectShowsOsdTimeline) {
+            _desktopControlsKey.currentState?.requestTimelineFocus();
+          } else {
+            _desktopControlsKey.currentState?.requestPlayPauseFocus();
+          }
         }
         return KeyEventResult.handled;
       }

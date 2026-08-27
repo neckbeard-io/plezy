@@ -317,6 +317,11 @@ class DesktopVideoControlsState extends State<DesktopVideoControls> {
     _playPauseFocusNode.requestFocus();
   }
 
+  /// Direct request for the seek bar to take focus.
+  void requestTimelineFocus() {
+    _timelineFocusNode.requestFocus();
+  }
+
   /// Hide content strip (called by parent when controls hide)
   void hideContentStrip() {
     if (_contentStripVisible) {

@@ -5,6 +5,7 @@ import 'package:plezy/providers/playback_state_provider.dart';
 import 'package:plezy/screens/video_player_screen.dart';
 import 'package:plezy/services/settings_service.dart';
 import 'package:plezy/utils/platform_detector.dart';
+import 'package:plezy/widgets/video_controls/player_chrome_controller.dart';
 import 'package:provider/provider.dart';
 
 import '../../test_helpers/media_items.dart';

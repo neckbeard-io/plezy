@@ -16,8 +16,7 @@ extension _PlexVideoControlsVisibilityMethods on _PlexVideoControlsState {
     }
   }
 
-<<<<<<< HEAD
-  /// Focus Play/Pause when the viewer is already driving with keyboard/D-pad
+  /// Focus Play/Pause (or timeline) when the viewer is already driving with keyboard/D-pad
   /// and opted into player navigation.
   ///
   /// This is an *automatic* grab — no key caused it — so it additionally
@@ -32,26 +31,18 @@ extension _PlexVideoControlsVisibilityMethods on _PlexVideoControlsState {
   bool _focusPlayPauseIfKeyboardMode() {
     if (!mounted || !_showControls) return false;
     // The raw preference, not the directional policy: a TV viewer who turned
-    // player navigation off must not get Play/Pause focused on open.
+    // player navigation off must not get controls focused on open.
     if (!videoPlayerNavigationPreference()) return false;
     final isMobile = PlatformDetector.isMobile(context) && !PlatformDetector.isTV();
     if (isMobile || !InputModeTracker.isKeyboardMode(context, listen: false)) return false;
     final controls = _desktopControlsKey.currentState;
     if (controls == null) return false;
-    controls.requestPlayPauseFocus();
-    return true;
-=======
-  /// Anchor focus on a real control in keyboard navigation mode (desktop/TV
-  /// only). Timeline-first: landing on the seek bar means the very next
-  /// LEFT/RIGHT scrubs, which is the common intent when the chrome comes up.
-  void _focusPlayPauseIfKeyboardMode() {
-    if (!mounted) return;
-    if (!_videoPlayerNavigationEnabled) return;
-    final isMobile = PlatformDetector.isMobile(context) && !PlatformDetector.isTV();
-    if (!isMobile && InputModeTracker.isKeyboardMode(context)) {
-      _desktopControlsKey.currentState?.requestTimelineFocus();
+    if (_selectShowsOsdTimeline) {
+      controls.requestTimelineFocus();
+    } else {
+      controls.requestPlayPauseFocus();
     }
->>>>>>> fee32883 (feat: timeline-first OSD focus and Plex-style OK button option)
+    return true;
   }
 
   /// Listen to playback state changes to manage auto-hide timer
@@ -226,17 +217,16 @@ extension _PlexVideoControlsVisibilityMethods on _PlexVideoControlsState {
     });
   }
 
-  /// Show controls and optionally focus play/pause on keyboard input (desktop only)
+  /// Show controls and optionally focus play/pause or timeline on keyboard input (desktop only)
   void _showControlsWithFocus({bool requestFocus = true}) {
-    widget.chromeController.show();
+    widget.chromeController.show(
+      focusTarget: requestFocus
+          ? (_selectShowsOsdTimeline ? PlayerChromeFocusTarget.timeline : PlayerChromeFocusTarget.playPause)
+          : null,
+    );
 
-    if (requestFocus) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _desktopControlsKey.currentState?.requestPlayPauseFocus();
-      });
-    } else {
-      // When not requesting focus on play/pause, ensure main focus node keeps focus
+    if (!requestFocus) {
+      // When not requesting focus on controls, ensure main focus node keeps focus
       // This prevents focus from being lost when controls become visible
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_focusNode.hasFocus) {

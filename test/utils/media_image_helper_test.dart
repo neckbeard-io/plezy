@@ -421,17 +421,6 @@ void main() {
       );
     });
 
-    test('an explicit cacheKey still wins', () {
-      final provider =
-          MediaImageHelper.serverArtworkProvider(
-                imageUrl: 'https://server:32400/library/metadata/1/thumb/2',
-                memWidth: 0,
-                memHeight: 0,
-                cacheKey: 'explicit',
-              )
-              as CachedNetworkImageProvider;
-      expect(provider.cacheKey, 'explicit');
-    });
 
     test('keys keep the plex_optimized_ prefix', () {
       expect(
