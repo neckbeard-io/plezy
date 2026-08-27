@@ -1476,6 +1476,7 @@
     "enterPlaylistName": "Enter playlist name",
     "delete": "Delete Playlist",
     "removeItem": "Remove from Playlist",
+    "playFromBeginning": "Play from Beginning",
     "smartPlaylist": "Smart Playlist",
     "itemCount": "${count} items",
     "oneItem": "1 item",
