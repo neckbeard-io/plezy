@@ -3702,6 +3702,9 @@ class Translations$playlists$en {
 	/// en: 'Remove from Playlist'
 	String get removeItem => 'Remove from Playlist';
 
+	/// en: 'Play from Beginning'
+	String get playFromBeginning => 'Play from Beginning';
+
 	/// en: 'Smart Playlist'
 	String get smartPlaylist => 'Smart Playlist';
 
@@ -8147,6 +8150,7 @@ extension on Translations {
 			'playlists.enterPlaylistName' => 'Enter playlist name',
 			'playlists.delete' => 'Delete Playlist',
 			'playlists.removeItem' => 'Remove from Playlist',
+			'playlists.playFromBeginning' => 'Play from Beginning',
 			'playlists.smartPlaylist' => 'Smart Playlist',
 			'playlists.itemCount' => ({required Object count}) => '${count} items',
 			'playlists.oneItem' => '1 item',
@@ -8354,9 +8358,9 @@ extension on Translations {
 			'downloads.backgroundWarning.stillNotWorkingDescription' => 'See steps for your device, or send a log from Settings › View Logs if the issue continues.',
 			'downloads.backgroundWarning.dialogTitle' => 'Downloads may not finish',
 			'downloads.backgroundWarning.dialogDownloadAnyway' => 'Download anyway',
-			'downloads.backgroundWarning.dialogFixFirst' => 'Fix this first',
 			_ => null,
 		} ?? switch (path) {
+			'downloads.backgroundWarning.dialogFixFirst' => 'Fix this first',
 			'downloads.backgroundWarning.statusTile' => 'Background downloads',
 			'downloads.backgroundWarning.statusOk' => 'Allowed to run in the background',
 			'downloads.backgroundWarning.statusBlocked' => 'Blocked by system settings',
