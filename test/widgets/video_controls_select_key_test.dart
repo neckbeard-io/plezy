@@ -598,6 +598,67 @@ void main() {
       },
     );
   });
+
+  group('suppress skip reappearance', () {
+    setUp(() async {
+      await settings.write(SettingsService.suppressSkipReappearance, true);
+      await setNavigationEnabled(true);
+    });
+
+    playerTest(
+      'only shows credits once when multiple credits markers exist across the video',
+      markers: [
+        MediaMarker(id: 1, type: 'credits', startTimeOffset: 10000, endTimeOffset: 20000),
+        MediaMarker(id: 2, type: 'credits', startTimeOffset: 30000, endTimeOffset: 40000),
+      ],
+      (tester) async {
+        // First credits marker appears
+        player.emitPosition(const Duration(seconds: 12));
+        await tester.pumpAndSettle();
+        expect(find.byType(SkipMarkerButton), findsOneWidget, reason: 'first credits marker must show');
+
+        // Playhead leaves the first marker
+        player.emitPosition(const Duration(seconds: 25));
+        await tester.pumpAndSettle();
+        expect(find.byType(SkipMarkerButton), findsNothing);
+
+        // Playhead enters the second credits marker (e.g. UFC round break/false positive)
+        player.emitPosition(const Duration(seconds: 35));
+        await tester.pumpAndSettle();
+        expect(find.byType(SkipMarkerButton), findsNothing, reason: 'subsequent credits markers must be suppressed unprompted');
+
+        // But when the viewer raises the OSD with timeline focus, the skip button is visible
+        chrome.show(focusTarget: PlayerChromeFocusTarget.timeline);
+        await tester.pumpAndSettle();
+        expect(find.byType(SkipMarkerButton), findsOneWidget, reason: 'OSD must show the skip button even for suppressed markers');
+
+        // Navigating UP from timeline focuses the skip button
+        await press(tester, LogicalKeyboardKey.arrowUp);
+        expect(focusLabel(), 'SkipMarkerButton', reason: 'ArrowUp must focus the skip button');
+      },
+    );
+
+    playerTest(
+      'seeking back into an already-shown marker does not show the button again',
+      markers: [
+        MediaMarker(id: 1, type: 'intro', startTimeOffset: 10000, endTimeOffset: 20000),
+      ],
+      (tester) async {
+        player.emitPosition(const Duration(seconds: 12));
+        await tester.pumpAndSettle();
+        expect(find.byType(SkipMarkerButton), findsOneWidget);
+
+        player.emitPosition(const Duration(seconds: 25));
+        await tester.pumpAndSettle();
+        expect(find.byType(SkipMarkerButton), findsNothing);
+
+        // Seek backwards into the same intro marker
+        player.emitPosition(const Duration(seconds: 15));
+        await tester.pumpAndSettle();
+        expect(find.byType(SkipMarkerButton), findsNothing, reason: 're-entering marker must not re-prompt');
+      },
+    );
+  });
 }
 
 /// Minimal [Player] reporting steady playback; transport is routed to the

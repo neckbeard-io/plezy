@@ -69,41 +69,40 @@ extension _PlexVideoControlsMarkerMethods on _PlexVideoControlsState {
 
   /// Updates the current marker and manages auto-skip/focus behavior.
   void _updateCurrentMarker(MediaMarker? foundMarker) {
-    if (!_hasRenderedFirstFrame) {
+    if (!_hasRenderedFirstFrame || foundMarker == null) {
       _clearCurrentMarker();
       return;
     }
 
-    if (foundMarker == null) {
-      _clearCurrentMarker();
-      return;
-    }
-
-    // Opt-in: each marker offers its button once per playback. Without this a
-    // marker re-entered by seeking backwards keeps re-prompting.
-    if (_suppressSkipReappearance && _shownMarkers.contains(foundMarker)) return;
+    // Opt-in: each marker offers its button once per playback. For credits,
+    // only show at most once for the entire video so false-positive duplicate
+    // markers (e.g. in long sports broadcasts) never re-prompt automatically.
+    final shouldSuppress = _suppressSkipReappearance &&
+        (_shownMarkers.contains(foundMarker) || (foundMarker.isCredits && _shownMarkers.any((m) => m.isCredits)));
     _shownMarkers.add(foundMarker);
 
     _setControlsState(() {
       _currentMarker = foundMarker;
-      _skipButtonDismissed = false;
+      _skipButtonDismissed = shouldSuppress;
     });
 
-    _startAutoSkipTimer(foundMarker);
+    if (!shouldSuppress) {
+      _startAutoSkipTimer(foundMarker);
 
-    // Auto-skip OFF: dismiss button after 7s if no interaction
-    // Auto-skip ON: button stays until controls hide
-    if (!_shouldAutoSkipForMarker(foundMarker)) {
-      _startSkipButtonDismissTimer();
-    }
+      // Auto-skip OFF: dismiss button after 7s if no interaction
+      // Auto-skip ON: button stays until controls hide
+      if (!_shouldAutoSkipForMarker(foundMarker)) {
+        _startSkipButtonDismissTimer();
+      }
 
-    // Auto-focus skip button on TV when marker appears (only in keyboard/TV mode)
-    if (PlatformDetector.isTV() && InputModeTracker.isKeyboardMode(context, listen: false)) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _skipMarkerFocusNode.requestFocus();
-        }
-      });
+      // Auto-focus skip button on TV when marker appears (only in keyboard/TV mode)
+      if (PlatformDetector.isTV() && InputModeTracker.isKeyboardMode(context, listen: false)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _skipMarkerFocusNode.requestFocus();
+          }
+        });
+      }
     }
   }
 
@@ -296,40 +295,8 @@ extension _PlexVideoControlsMarkerMethods on _PlexVideoControlsState {
     );
   }
 
-  /// Whether Back belongs to the skip intro/credits button right now, rather
-  /// than to the player's usual staged handling (hide controls / leave).
-  bool get _skipMarkerOwnsBack => _skipMarkerFocusNode.hasFocus && _isSkipMarkerButtonVisible;
-
-  /// Act on Back while the skip intro/credits button is focused:
-  /// - a running auto-skip countdown is cancelled but the button stays, now
-  ///   static, so the skip is still one press away;
-  /// - otherwise the button is deactivated — focus moves to the timeline, which
-  ///   dims it, and UP re-focuses it.
-  void _handleSkipMarkerBack() {
-    if (!_skipMarkerOwnsBack) return;
-
-    if (_autoSkipTimer?.isActive ?? false) {
-      _cancelAutoSkipTimer();
-      _startSkipButtonDismissTimer();
-      return;
-    }
-
-    _deactivateSkipButton();
-  }
-
-  /// Hand focus to the timeline rather than hard-hiding the button, which only
-  /// dims it (opacity is focus-driven). Hiding stranded focus on the root node,
-  /// where the controls' directional navigation had nothing to move from and
-  /// navigation looked dead. Moving to a real control keeps D-pad navigation
-  /// alive; UP from the timeline re-focuses the button at full opacity.
-  void _deactivateSkipButton() {
-    _cancelAutoSkipTimer();
-    _cancelSkipButtonDismissTimer();
-    _showControlsWithTimelineFocus();
-  }
-
   /// Skip button opacity is focus-driven, so rebuild whenever its focus changes.
   void _onSkipMarkerFocusChange() {
-    _setControlsState(() {});
+    if (mounted) _setControlsState(() {});
   }
 }
