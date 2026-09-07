@@ -619,14 +619,17 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     return 8.0; // Normal size
   }
 
-  // Public method to refresh content (for normal navigation)
+  // Public method to refresh content (for normal navigation, e.g. returning
+  // from the video player).
   @override
   void refresh() {
     // A stale-resume refresh must also refetch the home hubs; otherwise new
     // server-side media never appears until a restart (#1646). When fresh,
     // only Continue Watching refetches — one on-deck call, zero hub calls.
+    // Deferred: returning from playback means a scrobble just landed, and the
+    // server needs a moment before its on-deck hub names the next episode.
     if (_discover.refreshIfStale()) return;
-    unawaited(_discover.refreshContinueWatching());
+    _discover.refreshContinueWatchingWhenSettled();
   }
 
   // Public method to fully reload all content (for profile switches)
