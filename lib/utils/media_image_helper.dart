@@ -314,12 +314,13 @@ class MediaImageHelper {
     required String imageUrl,
     required int memWidth,
     required int memHeight,
+    String? cacheKey,
     Color? logoToneTarget,
     bool logoToneRemapMixed = true,
   }) {
     final provider = CachedNetworkImageProvider(
       imageUrl,
-      cacheKey: _serverArtworkCacheKey(imageUrl),
+      cacheKey: cacheKey ?? _serverArtworkCacheKey(imageUrl),
       cacheManager: PlexImageCacheManager.instance,
       headers: const {'User-Agent': 'Plezy'},
     );
