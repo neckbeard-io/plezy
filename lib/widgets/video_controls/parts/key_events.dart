@@ -44,6 +44,24 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
     return key == LogicalKeyboardKey.mediaTrackNext || key == LogicalKeyboardKey.mediaTrackPrevious;
   }
 
+  bool _isDirectionalKey(LogicalKeyboardKey key) {
+    return key == LogicalKeyboardKey.arrowUp ||
+        key == LogicalKeyboardKey.arrowDown ||
+        key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowRight;
+  }
+
+  bool _isHorizontalKey(LogicalKeyboardKey key) {
+    return key == LogicalKeyboardKey.arrowLeft || key == LogicalKeyboardKey.arrowRight;
+  }
+
+  bool _isSelectKey(LogicalKeyboardKey key) {
+    return key == LogicalKeyboardKey.select ||
+        key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter ||
+        key == LogicalKeyboardKey.gameButtonA;
+  }
+
   TransportCommand? _playPauseActivation(KeyEvent event) {
     return event is KeyDownEvent ? _transportCommandFor(event) : null;
   }
@@ -200,7 +218,7 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
     // just came back from the background), which strands the remote entirely.
     // The !hasFocus guard keeps this from double-handling anything the normal
     // focus path already sees.
-    if (_videoPlayerNavigationEnabled && !_focusNode.hasFocus) {
+    if (videoPlayerNavigationPreference() && !_focusNode.hasFocus) {
       if (_handleFocusLostFallback(event)) return true;
     }
 
@@ -251,7 +269,7 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
 
     if (event is KeyDownEvent && _isSelectKey(key)) {
       _focusNode.requestFocus();
-      _activateHiddenControlsPrimaryAction();
+      _activatePlayerSurfaceSelect(requestFocus: eventRequestsFocusNavigation(event));
       return true;
     }
 
