@@ -338,12 +338,43 @@ class MediaImageHelper {
       return cached;
     }
 
-    final key = 'plex_optimized_${sha1.convert(utf8.encode(imageUrl))}';
+    final key = 'plex_optimized_${sha1.convert(utf8.encode(cacheKeyIdentity(imageUrl)))}';
     if (_serverArtworkCacheKeys.length >= _serverArtworkCacheKeyLimit) {
       _serverArtworkCacheKeys.remove(_serverArtworkCacheKeys.keys.first);
     }
     _serverArtworkCacheKeys[imageUrl] = key;
     return key;
+  }
+
+  /// Reduces an artwork URL to the part that actually identifies the bytes.
+  ///
+  /// Plex endpoint failover rewrites scheme/host/port (`plex.direct` addresses
+  /// change with the reachable connection) while serving byte-identical
+  /// artwork. Hashing the whole URL therefore invalidated the disk cache and
+  /// the live `ImageStream` on every failover, which surfaced as placeholder
+  /// flashes and black posters. Only the path/query carry identity.
+  ///
+  /// Exposed for tests; not intended for callers outside this helper.
+  @visibleForTesting
+  static String cacheKeyIdentity(String imageUrl) {
+    try {
+      final uri = Uri.parse(imageUrl);
+      final query = uri.queryParameters;
+      // Plex transcode URLs encode the real image path in the `url` param, so
+      // that plus the bucketed dimensions is the whole identity.
+      final innerUrl = query['url'];
+      if (innerUrl != null) {
+        final w = query['width'] ?? '';
+        final h = query['height'] ?? '';
+        return '$innerUrl|$w|$h';
+      }
+      // Non-transcode / Jellyfin URLs: path + query uniquely identify the
+      // image without depending on scheme+host+port.
+      return '${uri.path}?${uri.query}';
+    } catch (_) {
+      // Malformed URL — fall back to the whole string.
+      return imageUrl;
+    }
   }
 
   /// Determines if an image path is suitable for transcoding
