@@ -16,6 +16,7 @@ extension _PlexVideoControlsVisibilityMethods on _PlexVideoControlsState {
     }
   }
 
+<<<<<<< HEAD
   /// Focus Play/Pause when the viewer is already driving with keyboard/D-pad
   /// and opted into player navigation.
   ///
@@ -39,6 +40,18 @@ extension _PlexVideoControlsVisibilityMethods on _PlexVideoControlsState {
     if (controls == null) return false;
     controls.requestPlayPauseFocus();
     return true;
+=======
+  /// Anchor focus on a real control in keyboard navigation mode (desktop/TV
+  /// only). Timeline-first: landing on the seek bar means the very next
+  /// LEFT/RIGHT scrubs, which is the common intent when the chrome comes up.
+  void _focusPlayPauseIfKeyboardMode() {
+    if (!mounted) return;
+    if (!_videoPlayerNavigationEnabled) return;
+    final isMobile = PlatformDetector.isMobile(context) && !PlatformDetector.isTV();
+    if (!isMobile && InputModeTracker.isKeyboardMode(context)) {
+      _desktopControlsKey.currentState?.requestTimelineFocus();
+    }
+>>>>>>> fee32883 (feat: timeline-first OSD focus and Plex-style OK button option)
   }
 
   /// Listen to playback state changes to manage auto-hide timer
@@ -249,7 +262,7 @@ extension _PlexVideoControlsVisibilityMethods on _PlexVideoControlsState {
     }
 
     if (_currentMarker != null) {
-      _skipMarkerFocusNode.requestFocus();
+      _focusSkipMarkerButton();
       return;
     }
 
@@ -258,11 +271,33 @@ extension _PlexVideoControlsVisibilityMethods on _PlexVideoControlsState {
     }
   }
 
+  /// Focus the skip intro/credits button, un-dismissing it first when the 7s
+  /// no-interaction timer already hid it. The widget has to be back in the tree
+  /// before its focus node can take focus, so that case waits a frame.
+  void _focusSkipMarkerButton() {
+    if (_currentMarker == null) return;
+    if (_skipButtonDismissed) {
+      _setControlsState(() {
+        _skipButtonDismissed = false;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _skipMarkerFocusNode.requestFocus();
+      });
+      return;
+    }
+    _skipMarkerFocusNode.requestFocus();
+  }
+
+  /// Raise the chrome with the seek bar focused (Plex-style OSD).
+  void _showControlsWithTimelineFocus() {
+    widget.chromeController.show(focusTarget: PlayerChromeFocusTarget.timeline);
+  }
+
   void _onChromeChanged() {
     if (!mounted) return;
     final controlsVisible = widget.chromeController.controlsVisible;
     final visibilityChanged = controlsVisible != _lastControlsVisible;
-    final focusPlayPause = widget.chromeController.takePlayPauseFocus();
+    final focusTarget = widget.chromeController.takeFocusTarget();
     _lastControlsVisible = controlsVisible;
 
     if (visibilityChanged && !controlsVisible) {
@@ -310,8 +345,8 @@ extension _PlexVideoControlsVisibilityMethods on _PlexVideoControlsState {
       _updateTrafficLightVisibility();
     }
 
-    if (focusPlayPause) {
-      _requestPlayPauseFocus();
+    if (focusTarget != null) {
+      _requestChromeFocus(focusTarget);
     }
   }
 
@@ -333,13 +368,18 @@ extension _PlexVideoControlsVisibilityMethods on _PlexVideoControlsState {
 
   bool _sheetIsOpen() => OverlaySheetController.maybeOf(context)?.isOpen ?? false;
 
-  void _requestPlayPauseFocus() {
+  void _requestChromeFocus(PlayerChromeFocusTarget target) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !widget.chromeController.controlsVisible) return;
       // Never steal focus from an open sheet (same rule as
       // _claimPlayerSurfaceFocus).
       if (OverlaySheetController.maybeOf(context)?.isOpen ?? false) return;
-      _desktopControlsKey.currentState?.requestPlayPauseFocus();
+      switch (target) {
+        case PlayerChromeFocusTarget.playPause:
+          _desktopControlsKey.currentState?.requestPlayPauseFocus();
+        case PlayerChromeFocusTarget.timeline:
+          _desktopControlsKey.currentState?.requestTimelineFocus();
+      }
     });
   }
 }
