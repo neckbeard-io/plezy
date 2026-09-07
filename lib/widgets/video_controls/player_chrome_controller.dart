@@ -40,6 +40,7 @@ class PlayerChromeController extends ChangeNotifier implements ValueListenable<b
   bool get contentStripVisible => _contentStripVisible;
   bool isHeld(PlayerChromeHold hold) => _holds.contains(hold);
   PlayerChromeFocusTarget? get pendingFocusTarget => _pendingFocusTarget;
+  bool get pendingPlayPauseFocus => _pendingFocusTarget == PlayerChromeFocusTarget.playPause;
 
   void configure({Duration? hideDelay, bool? hasFirstFrame}) {
     var restartTimer = false;
@@ -110,6 +111,15 @@ class PlayerChromeController extends ChangeNotifier implements ValueListenable<b
     final target = _pendingFocusTarget;
     _pendingFocusTarget = null;
     return target;
+  }
+
+  /// Compatibility helper for play/pause focus requests.
+  bool takePlayPauseFocus() {
+    if (_pendingFocusTarget == PlayerChromeFocusTarget.playPause) {
+      _pendingFocusTarget = null;
+      return true;
+    }
+    return false;
   }
 
   bool hide({bool ignoreHolds = false}) {
