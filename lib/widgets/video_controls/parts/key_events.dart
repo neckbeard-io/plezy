@@ -95,6 +95,13 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
       return handlePlayerNavigationKeyAction(event, navigationKey, sheetController!.pop);
     }
 
+    // With the skip intro/credits button focused, Back acts on it first —
+    // cancel a running countdown, else deactivate the button — rather than
+    // hiding the controls or leaving the player.
+    if (navigationKey == PlayerNavigationKey.back && _skipMarkerOwnsBack) {
+      return handlePlayerNavigationKeyAction(event, navigationKey, _handleSkipMarkerBack);
+    }
+
     if (widget.chromeController.contentStripVisible) {
       return handlePlayerNavigationKeyAction(event, navigationKey, () {
         _desktopControlsKey.currentState?.dismissContentStrip();

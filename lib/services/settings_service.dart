@@ -544,6 +544,10 @@ class SettingsService extends BaseSharedPreferencesService {
   /// bar focused rather than toggling playback in place.
   static const selectShowsOsdTimeline = BoolPref('select_shows_osd_timeline');
   static const forceSkipMarkerFallback = BoolPref('force_skip_marker_fallback');
+
+  /// Offer each intro/credits marker's skip button once per playback, so
+  /// seeking back into a marker doesn't re-prompt.
+  static const suppressSkipReappearance = BoolPref('suppress_skip_reappearance');
   static const autoSkipDelay = IntPref('auto_skip_delay', defaultValue: 5);
   static const introPattern = StringPref('intro_pattern', defaultValue: defaultIntroPattern);
   static const creditsPattern = StringPref('credits_pattern', defaultValue: defaultCreditsPattern);
