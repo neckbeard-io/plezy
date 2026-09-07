@@ -292,8 +292,13 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
           title: t.settings.exitFullscreenOnPlayerClose,
           subtitle: t.settings.exitFullscreenOnPlayerCloseDescription,
         ),
-      // TODO: "Enter fullscreen when playback starts" toggle (#1641) goes
-      // here, desktop-only, paired with exitFullscreenOnPlayerClose.
+      if (!isMobile)
+        SettingSwitchTile(
+          pref: SettingsService.selectShowsOsdTimeline,
+          icon: Symbols.radio_button_checked_rounded,
+          title: t.settings.selectShowsOsdTimeline,
+          subtitle: t.settings.selectShowsOsdTimelineDescription,
+        ),
     ],
   );
 

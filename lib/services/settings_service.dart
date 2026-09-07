@@ -540,6 +540,9 @@ class SettingsService extends BaseSharedPreferencesService {
     _legacyAutoSkipCreditsKey: skipCreditsMode,
   };
 
+  /// Plex-style OSD: OK/Select and Play/Pause raise the controls with the seek
+  /// bar focused rather than toggling playback in place.
+  static const selectShowsOsdTimeline = BoolPref('select_shows_osd_timeline');
   static const forceSkipMarkerFallback = BoolPref('force_skip_marker_fallback');
   static const autoSkipDelay = IntPref('auto_skip_delay', defaultValue: 5);
   static const introPattern = StringPref('intro_pattern', defaultValue: defaultIntroPattern);
