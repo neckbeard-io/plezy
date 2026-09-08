@@ -273,5 +273,81 @@ void main() {
       expect(p.dispose, returnsNormally);
       expect(() => manager.updateServerStatus(ServerId('b'), true), returnsNormally);
     });
+
+    group('hidden servers', () {
+      test('hidden ids drop out of the online list on top of the profile filter', () {
+        final p = MultiServerProvider(manager, aggregation);
+        manager.updateServerStatus(ServerId('srv-1'), true);
+        manager.updateServerStatus(ServerId('srv-2'), true);
+
+        p.setHiddenServerIds({'srv-2'});
+
+        expect(p.onlineServerIds, ['srv-1']);
+        expect(p.isServerOnline(ServerId('srv-2')), isFalse);
+        expect(p.isServerHidden(ServerId('srv-2')), isTrue);
+
+        // Stacks with the profile filter rather than replacing it.
+        p.setVisibleServerIds({'srv-1', 'srv-2'});
+        expect(p.onlineServerIds, ['srv-1']);
+
+        p.dispose();
+      });
+
+      test('unhiding restores the server', () {
+        final p = MultiServerProvider(manager, aggregation);
+        manager.updateServerStatus(ServerId('srv-1'), true);
+
+        p.setHiddenServerIds({'srv-1'});
+        expect(p.onlineServerIds, isEmpty);
+
+        p.setHiddenServerIds(const {});
+        expect(p.onlineServerIds, ['srv-1']);
+
+        p.dispose();
+      });
+
+      test('setHiddenServerIds is idempotent and notifies only on change', () {
+        final p = MultiServerProvider(manager, aggregation);
+        var notified = 0;
+        p.addListener(() => notified++);
+
+        p.setHiddenServerIds({'a'});
+        expect(notified, 1);
+        p.setHiddenServerIds({'a'});
+        expect(notified, 1, reason: 'same set must not notify again');
+        p.setHiddenServerIds({'a', 'b'});
+        expect(notified, 2);
+
+        p.dispose();
+      });
+
+      test('hiding immediately drops the server from Live TV', () {
+        final p = MultiServerProvider(manager, aggregation);
+        p.debugSetLiveTvServersForTesting([
+          LiveTvServerInfo(serverId: 'srv-1', dvrKey: 'dvr-1'),
+          LiveTvServerInfo(serverId: 'srv-2', dvrKey: 'dvr-2'),
+        ]);
+
+        p.setHiddenServerIds({'srv-2'});
+
+        expect(p.liveTvServers.map((s) => s.serverId), ['srv-1']);
+        expect(p.hasLiveTv, isTrue);
+
+        p.dispose();
+      });
+
+      test('expectedServerIds and authErrorServerIds exclude hidden servers', () {
+        final p = MultiServerProvider(manager, aggregation);
+        p.setExpectedVisibleServerIds({'srv-1', 'srv-2'});
+        p.setHiddenServerIds({'srv-2'});
+
+        expect(p.expectedServerIds, ['srv-1']);
+
+        manager.debugMarkAuthErrorForTesting(ServerId('srv-2'));
+        expect(p.authErrorServerIds, isEmpty, reason: 'a hidden server must not raise a sign-in banner');
+
+        p.dispose();
+      });
+    });
   });
 }
