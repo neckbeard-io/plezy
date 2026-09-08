@@ -2,28 +2,41 @@
 import subprocess
 import sys
 
-FEATURES = [
-    ("android-seeking-fix", "android-seeking-fix-2026-08-26"),
-    ("view-all-breaks-media", "view-all-breaks-media-2026-08-26"),
-    ("per-episode-cast", "per-episode-cast-2026-08-26"),
-    ("watched-refresh", "watched-refresh-2026-08-26"),
-    ("next-up-fixes", "next-up-fixes-2026-08-26"),
-    ("season-show-long-press", "season-show-long-press-2026-08-26"),
-    ("osd-focus-changes", "osd-focus-changes-2026-08-26"),
-    ("skip-credit-changes", "skip-credit-changes-2026-08-26"),
-    ("playlist-enhancements", "playlist-enhancements-2026-08-26"),
-    ("per-server-visibility", "per-server-visibility-2026-08-26"),
+FEATURE_NAMES = [
+    "android-seeking-fix",
+    "view-all-breaks-media",
+    "per-episode-cast",
+    "watched-refresh",
+    "next-up-fixes",
+    "season-show-long-press",
+    "osd-focus-changes",
+    "skip-credit-changes",
+    "playlist-enhancements",
+    "per-server-visibility",
 ]
 
 def run(cmd, capture=True):
     res = subprocess.run(cmd, shell=True, text=True, capture_output=capture)
     return res.returncode, res.stdout.strip(), res.stderr.strip()
 
+def find_latest_feature_branch(feat_name):
+    code, out, _ = run(f"git branch --list '{feat_name}-*' --format='%(refname:short)'")
+    if code == 0 and out:
+        branches = [b.strip() for b in out.splitlines() if b.strip()]
+        if branches:
+            branches.sort()
+            return branches[-1]
+    return None
+
 def main():
-    target = sys.argv[1] if len(sys.argv) > 1 else "2.19.0"
+    target = sys.argv[1] if len(sys.argv) > 1 else "2.19.1"
     print(f"=== Auditing 10 Plezy Custom Features against {target} ===")
     
-    for feat, branch in FEATURES:
+    for feat in FEATURE_NAMES:
+        branch = find_latest_feature_branch(feat)
+        if not branch:
+            print(f"[-] {feat}: no prior branch found!")
+            continue
         # Get commit hash of feature
         code, commit, _ = run(f"git rev-parse {branch}")
         if code != 0:
