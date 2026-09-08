@@ -315,6 +315,11 @@ class DesktopVideoControlsState extends State<DesktopVideoControls> {
     _playPauseFocusNode.requestFocus();
   }
 
+  /// Direct request for the seek bar to take focus.
+  void requestTimelineFocus() {
+    _timelineFocusNode.requestFocus();
+  }
+
   /// Hide content strip (called by parent when controls hide)
   void hideContentStrip() {
     if (_contentStripVisible) {
@@ -555,6 +560,24 @@ class DesktopVideoControlsState extends State<DesktopVideoControls> {
       _timelineSeek.flush();
       _resetSeekState();
       _playPauseFocusNode.requestFocus();
+      widget.onFocusActivity?.call();
+      return KeyEventResult.handled;
+    }
+
+    // Select/Enter on the seek bar toggles play/pause. With timeline-first
+    // focus this is where the remote sits, and having OK do nothing there is
+    // the one thing users notice immediately.
+    if (key == LogicalKeyboardKey.select ||
+        key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter ||
+        key == LogicalKeyboardKey.gameButtonA) {
+      if (_canControl) {
+        if (widget.player.state.playing) {
+          widget.player.pause();
+        } else {
+          widget.player.play();
+        }
+      }
       widget.onFocusActivity?.call();
       return KeyEventResult.handled;
     }
