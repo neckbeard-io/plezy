@@ -7,6 +7,8 @@ import '../../focus/focusable_action_bar.dart';
 import '../../media/library_query.dart';
 import '../../media/media_item.dart';
 import '../../media/media_playlist.dart';
+import '../../providers/watch_state_store.dart';
+import '../../services/jellyfin_sequential_launcher.dart';
 import '../../services/media_list_playback_launcher.dart';
 import '../../services/playlist_items_loader.dart';
 import '../../utils/app_logger.dart';
@@ -73,7 +75,41 @@ class _PlaylistDetailScreenState extends BaseMediaListDetailScreen<PlaylistDetai
   bool get _isAudioPlaylist => widget.playlist.playlistType == 'audio';
 
   @override
-  Future<void> playItems() => _isAudioPlaylist ? _playAudioPlaylist(shuffle: false) : super.playItems();
+  Future<void> playItems() => _isAudioPlaylist ? _playAudioPlaylist(shuffle: false) : _playVideoPlaylistResuming();
+
+  /// Play picks up where the viewer left off: the first item that is partially
+  /// watched, else the first unwatched one. Everything watched falls back to
+  /// the top. "Play from beginning" is the separate app-bar action.
+  Future<void> _playVideoPlaylistResuming() async {
+    if (items.isEmpty) {
+      if (mounted) showAppSnackBar(context, emptyMessage);
+      return;
+    }
+    final launcher = MediaListPlaybackLauncher.forItem(context, mediaItem);
+    await launcher.launchFromCollectionOrPlaylist(
+      item: mediaItem,
+      shuffle: false,
+      startItem: _findResumeItem(),
+      showLoadingIndicator: launcher is JellyfinSequentialLauncher,
+    );
+  }
+
+  /// Play the whole playlist from the top, ignoring watch state.
+  Future<void> _playFromBeginning() =>
+      _isAudioPlaylist ? _playAudioPlaylist(shuffle: false) : super.playItems();
+
+  /// First partially-watched item, else first unwatched, else null. Reads
+  /// through the watch-state store so items marked during this session count.
+  MediaItem? _findResumeItem() {
+    for (final item in items) {
+      // readFreshWatchState, not withFreshWatchState: this runs from a handler,
+      // and `select` is only legal during build.
+      final effective = context.readFreshWatchState(item);
+      if (effective.hasActiveProgress) return effective;
+      if (!effective.isWatched) return effective;
+    }
+    return null;
+  }
 
   @override
   Future<void> shufflePlayItems() => _isAudioPlaylist ? _playAudioPlaylist(shuffle: true) : super.shufflePlayItems();
@@ -111,6 +147,13 @@ class _PlaylistDetailScreenState extends BaseMediaListDetailScreen<PlaylistDetai
     return [
       if (items.isNotEmpty) ...[
         FocusableAction(icon: Symbols.play_arrow_rounded, tooltip: t.common.play, onPressed: playItems),
+        // Play resumes at the first unfinished item, so keep an explicit way
+        // back to the top of the playlist.
+        FocusableAction(
+          icon: Symbols.replay_rounded,
+          tooltip: t.playlists.playFromBeginning,
+          onPressed: _playFromBeginning,
+        ),
         FocusableAction(icon: Symbols.shuffle_rounded, tooltip: t.common.shuffle, onPressed: shufflePlayItems),
       ],
       ...buildSyncRuleActions(
@@ -168,8 +211,15 @@ class _PlaylistDetailScreenState extends BaseMediaListDetailScreen<PlaylistDetai
   // Estimated item height for scroll-into-view (card + vertical margins)
   static const double _estimatedItemHeight = 114.0;
 
+  // Long-press detection for SELECT (d-pad context menu).
+  static const _selectLongPressDuration = Duration(milliseconds: 500);
+  Timer? _longPressTimer;
+  bool _isSelectKeyDown = false;
+  final GlobalKey<PlaylistItemCardState> _focusedCardKey = GlobalKey<PlaylistItemCardState>();
+
   @override
   void dispose() {
+    _longPressTimer?.cancel();
     _continuation.dispose();
     _listFocusNode.dispose();
     _continuationRetryFocusNode.dispose();
@@ -477,12 +527,47 @@ class _PlaylistDetailScreenState extends BaseMediaListDetailScreen<PlaylistDetai
         backHandledByKeyEvent = true;
         _cancelMoveMode();
       } else {
-        // Navigate to the app bar and suppress route-level back handling.
-        handleBackFromContent();
+        // Leave the playlist outright. Routing Back to the app bar first makes
+        // the list a two-press exit, which nobody expects from a flat list.
+        backHandledByKeyEvent = true;
+        if (mounted) Navigator.pop(context);
       }
     });
     if (backResult != KeyEventResult.ignored) {
       return backResult;
+    }
+
+    // Context menu key (dedicated menu button on some remotes).
+    if (event.isActionable && key.isContextMenuKey && _movingIndex == null && _focusedColumn == 0) {
+      SelectKeyUpSuppressor.suppressSelectUntilKeyUp();
+      _focusedCardKey.currentState?.showContextMenu();
+      return KeyEventResult.handled;
+    }
+
+    // Long-press SELECT on the main row opens the same context menu the rest of
+    // the app offers on long-press; a short press still plays from the item.
+    if (key.isSelectKey && _movingIndex == null && _focusedColumn == 0) {
+      if (event is KeyDownEvent) {
+        if (!_isSelectKeyDown) {
+          _isSelectKeyDown = true;
+          _longPressTimer?.cancel();
+          _longPressTimer = Timer(_selectLongPressDuration, () {
+            if (!mounted) return;
+            SelectKeyUpSuppressor.suppressSelectUntilKeyUp();
+            _focusedCardKey.currentState?.showContextMenu();
+          });
+        }
+        return KeyEventResult.handled;
+      }
+      if (event is KeyRepeatEvent) return KeyEventResult.handled;
+      if (event is KeyUpEvent) {
+        // Timer still pending → it was a tap, not a hold.
+        final wasTap = (_longPressTimer?.isActive ?? false) && _isSelectKeyDown;
+        _longPressTimer?.cancel();
+        if (wasTap) unawaited(_playFromItem(_focusedIndex));
+        _isSelectKeyDown = false;
+        return KeyEventResult.handled;
+      }
     }
 
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
@@ -592,10 +677,8 @@ class _PlaylistDetailScreenState extends BaseMediaListDetailScreen<PlaylistDetai
         }
       }
       if (key.isSelectKey) {
-        if (_focusedColumn == 0) {
-          // Play from this item
-          _playFromItem(_focusedIndex);
-        } else if (_focusedColumn == 1 && _canMutatePlaylist) {
+        // Column 0 is handled by the tap/long-press split above.
+        if (_focusedColumn == 1 && _canMutatePlaylist) {
           // Enter move mode
           setState(() {
             _movingIndex = _focusedIndex;
@@ -767,6 +850,9 @@ class _PlaylistDetailScreenState extends BaseMediaListDetailScreen<PlaylistDetai
             final isFocused = inKeyboardMode && focusState.$1;
             return RepaintBoundary(
               child: PlaylistItemCard(
+                // Only the focused card carries the key, so the long-press
+                // handler can reach exactly the card the remote is on.
+                key: isFocused ? _focusedCardKey : null,
                 item: item,
                 index: index,
                 onRemove: _canMutatePlaylist ? () => _removeItem(index) : null,
