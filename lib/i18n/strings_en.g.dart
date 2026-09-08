@@ -909,6 +909,12 @@ class Translations$settings$en {
 	/// en: 'Use chapter title patterns even when Plex has markers'
 	String get forceSkipMarkerFallbackDescription => 'Use chapter title patterns even when Plex has markers';
 
+	/// en: 'Suppress Skip Reappearance'
+	String get suppressSkipReappearance => 'Suppress Skip Reappearance';
+
+	/// en: 'Only show each skip button once per marker, even if it reappears in the timeline'
+	String get suppressSkipReappearanceDescription => 'Only show each skip button once per marker, even if it reappears in the timeline';
+
 	/// en: 'Auto Skip Delay'
 	String get autoSkipDelay => 'Auto Skip Delay';
 
@@ -7307,6 +7313,8 @@ extension on Translations {
 			'settings.skipMarkerModeAuto' => 'Automatic',
 			'settings.forceSkipMarkerFallback' => 'Force Fallback Markers',
 			'settings.forceSkipMarkerFallbackDescription' => 'Use chapter title patterns even when Plex has markers',
+			'settings.suppressSkipReappearance' => 'Suppress Skip Reappearance',
+			'settings.suppressSkipReappearanceDescription' => 'Only show each skip button once per marker, even if it reappears in the timeline',
 			'settings.autoSkipDelay' => 'Auto Skip Delay',
 			'settings.autoSkipDelayDescription' => ({required Object seconds}) => 'Wait ${seconds} seconds before auto-skipping',
 			'settings.introPattern' => 'Intro Marker Pattern',
