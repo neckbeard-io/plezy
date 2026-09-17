@@ -208,8 +208,6 @@ class _PlaylistDetailScreenState extends BaseMediaListDetailScreen<PlaylistDetai
   bool get _canEditPlaylist => !_isReadOnly && _isPlaylistFullyLoaded;
   bool get _canMutatePlaylist => _canEditPlaylist && !_isPlaylistMutationPending;
 
-  // Estimated item height for scroll-into-view (card + vertical margins)
-  static const double _estimatedItemHeight = 114.0;
 
   // Long-press detection for SELECT (d-pad context menu).
   static const _selectLongPressDuration = Duration(milliseconds: 500);
