@@ -112,12 +112,6 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
       return handlePlayerNavigationKeyAction(event, navigationKey, sheetController!.pop);
     }
 
-    // With the skip intro/credits button focused, Back acts on it first —
-    // cancel a running countdown, else deactivate the button — rather than
-    // hiding the controls or leaving the player.
-    if (navigationKey == PlayerNavigationKey.back && _skipMarkerOwnsBack) {
-      return handlePlayerNavigationKeyAction(event, navigationKey, _handleSkipMarkerBack);
-    }
 
     if (widget.chromeController.contentStripVisible) {
       return handlePlayerNavigationKeyAction(event, navigationKey, () {
@@ -434,13 +428,17 @@ extension _PlexVideoControlsKeyEventMethods on _PlexVideoControlsState {
       // Children never see the key in that state, so route it here instead of
       // consuming it into nothing.
       if (_focusNode.hasPrimaryFocus) {
-        if (_isHorizontalKey(key)) {
-          _desktopControlsKey.currentState?.requestTimelineFocus();
-          if (widget.canControl) unawaited(_seekByTime(forward: key == LogicalKeyboardKey.arrowRight));
-        } else if (_selectShowsOsdTimeline && key == LogicalKeyboardKey.arrowUp && _currentMarker != null) {
-          _focusSkipMarkerButton();
+        if (_selectShowsOsdTimeline) {
+          if (_isHorizontalKey(key)) {
+            _desktopControlsKey.currentState?.requestTimelineFocus();
+            if (widget.canControl) unawaited(_seekByTime(forward: key == LogicalKeyboardKey.arrowRight));
+          } else if (key == LogicalKeyboardKey.arrowUp && _currentMarker != null) {
+            _focusSkipMarkerButton();
+          } else {
+            _desktopControlsKey.currentState?.requestTimelineFocus();
+          }
         } else {
-          _desktopControlsKey.currentState?.requestTimelineFocus();
+          _desktopControlsKey.currentState?.requestPlayPauseFocus();
         }
         return KeyEventResult.handled;
       }

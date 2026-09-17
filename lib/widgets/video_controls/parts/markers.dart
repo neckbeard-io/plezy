@@ -294,37 +294,6 @@ extension _PlexVideoControlsMarkerMethods on _PlexVideoControlsState {
     );
   }
 
-  /// Whether Back belongs to the skip intro/credits button right now, rather
-  /// than to the player's usual staged handling (hide controls / leave).
-  bool get _skipMarkerOwnsBack => _skipMarkerFocusNode.hasFocus && _isSkipMarkerButtonVisible;
-
-  /// Act on Back while the skip intro/credits button is focused:
-  /// - a running auto-skip countdown is cancelled but the button stays, now
-  ///   static, so the skip is still one press away;
-  /// - otherwise the button is deactivated — focus moves to the timeline, which
-  ///   dims it, and UP re-focuses it.
-  void _handleSkipMarkerBack() {
-    if (!_skipMarkerOwnsBack) return;
-
-    if (_autoSkipTimer?.isActive ?? false) {
-      _cancelAutoSkipTimer();
-      _startSkipButtonDismissTimer();
-      return;
-    }
-
-    _deactivateSkipButton();
-  }
-
-  /// Hand focus to the timeline rather than hard-hiding the button, which only
-  /// dims it (opacity is focus-driven). Hiding stranded focus on the root node,
-  /// where the controls' directional navigation had nothing to move from and
-  /// navigation looked dead. Moving to a real control keeps D-pad navigation
-  /// alive; UP from the timeline re-focuses the button at full opacity.
-  void _deactivateSkipButton() {
-    _cancelAutoSkipTimer();
-    _cancelSkipButtonDismissTimer();
-    _showControlsWithTimelineFocus();
-  }
 
   /// Skip button opacity is focus-driven, so rebuild whenever its focus changes.
   void _onSkipMarkerFocusChange() {
