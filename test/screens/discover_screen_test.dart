@@ -457,7 +457,7 @@ void main() {
 
     // Fresh: the resume refresh stays Continue Watching-only.
     screen.refresh();
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
     await tester.pump();
     expect(client.hubCalls, 1, reason: 'a fresh refresh must not refetch hubs');
 

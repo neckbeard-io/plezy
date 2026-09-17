@@ -442,8 +442,6 @@ class LibrariesProvider extends ChangeNotifier with DisposableChangeNotifierMixi
         if (!incomingKeys.contains(lib.globalKey)) lib,
     ];
     final mergedLibraries = [...orderedLibraries, ...carriedOver];
-    _libraries = mergedLibraries;
-    safeNotifyListeners();
 
     // Save the new order
     var storage = _storageService;
