@@ -226,14 +226,17 @@ extension _VideoPlayerPlaybackServiceMethods on VideoPlayerScreenState {
 
         // Fallback for MPV backends whose playbackRestart event is unavailable.
         // Android ExoPlayer position can advance on its standalone clock without
-        // a renderer, so it may infer readiness only after switching to MPV.
+        // a renderer, so it may infer readiness immediately only after switching to MPV,
+        // or after advancing substantially (>2.5s) on its own clock.
         final canInferRenderedFrameFromPosition =
             !(Platform.isAndroid && useExoPlayer) || (currentPlayer is PlayerAndroid && currentPlayer.usingMpvFallback);
-        if (canInferRenderedFrameFromPosition && !_firstFrame.rendered) {
-          if (lastObservedPositionMs != null && position.inMilliseconds != lastObservedPositionMs) {
+        if (!_firstFrame.rendered) {
+          final positionAdvanced = lastObservedPositionMs != null && position.inMilliseconds != lastObservedPositionMs;
+          final positionDelta = lastObservedPositionMs != null ? (position.inMilliseconds - lastObservedPositionMs!).abs() : 0;
+          if ((canInferRenderedFrameFromPosition && positionAdvanced) || positionDelta >= 2500) {
             unawaited(_markFirstFrameReady(currentPlayer, settingsService));
           }
-          lastObservedPositionMs = position.inMilliseconds;
+          lastObservedPositionMs ??= position.inMilliseconds;
         }
 
         // A recovered stream that progressed well past the recovery point
