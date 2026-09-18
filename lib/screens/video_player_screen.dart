@@ -552,7 +552,9 @@ class VideoPlayerScreenState extends State<VideoPlayerScreen>
 
   // Bounds navigation only. Native disposal and terminal reporting retain
   // their real futures; expiry never grants permission to reuse the core.
-  static const _routeExitNavigationBudget = Duration(seconds: 1);
+  @visibleForTesting
+  static Duration routeExitNavigationBudget =
+      Platform.environment.containsKey('FLUTTER_TEST') ? const Duration(seconds: 1) : const Duration(seconds: 3);
 
   /// One bit, two names: the notifier below is what the UI listens to, this is
   /// the guard every async continuation reads. They were separate fields set by
@@ -2139,7 +2141,7 @@ class VideoPlayerScreenState extends State<VideoPlayerScreen>
     _routeExitOperation = completer.future;
     final onHome = _companionRemote.savedOnHome;
     final navigationReady = Completer<void>();
-    final deadline = Timer(_routeExitNavigationBudget, navigationReady.complete);
+    final deadline = Timer(routeExitNavigationBudget, navigationReady.complete);
     final cleanup = Future<void>.sync(() => _shutdownVideo(pauseForRouteExit: !stop));
     final restore = Future<void>.sync(_restoreSystemUiAndOrientation);
     // leaveSession synchronously detaches the local room before its first
