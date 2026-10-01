@@ -139,17 +139,22 @@ class DataAggregationService {
 
   DataAggregationService(this._serverManager);
 
-  /// Online clients visible to the active profile, or the online clients in
-  /// [serverIds]. A supplied set is already profile-scoped: delta refreshes
-  /// fan out to newly-online visible servers, and catalog lookups to the
-  /// profile's expected servers, which can come online a status emission
-  /// before the visibility filter promotes them.
+  Set<String> _hiddenServerIds = const {};
+
+  /// Servers the user hid in settings. They stay connected — downloads and
+  /// direct navigation still resolve through them — but they contribute
+  /// nothing to any aggregated surface (hubs, on-deck, libraries, search).
+  set hiddenServerIds(Set<String> ids) => _hiddenServerIds = ids;
+
+  /// Online clients visible to the active profile, optionally restricted to
+  /// [serverIds] — delta refreshes fan out to newly-online servers only.
+  /// Hidden servers are dropped here, at the one choke point every fan-out shares.
   Map<String, MediaServerClient> _clientsFor(Set<String>? serverIds) {
-    if (serverIds == null) return _serverManager.visibleOnlineClients;
-    final clients = _serverManager.onlineClients;
+    final clients = serverIds == null ? _serverManager.visibleOnlineClients : _serverManager.onlineClients;
     return {
       for (final entry in clients.entries)
-        if (serverIds.contains(entry.key)) entry.key: entry.value,
+        if ((serverIds == null || serverIds.contains(entry.key)) && !_hiddenServerIds.contains(entry.key))
+          entry.key: entry.value,
     };
   }
 
@@ -758,7 +763,7 @@ class DataAggregationService {
     if (query.trim().isEmpty) return _emptySearchResult;
 
     abort?.throwIfAborted();
-    final clients = _serverManager.visibleOnlineClients;
+    final clients = _clientsFor(null);
     if (clients.isEmpty) return _emptySearchResult;
 
     final resultLimit = limit ?? defaultMediaSearchLimit;
@@ -886,7 +891,14 @@ class DataAggregationService {
     String? plexGuid,
     ExternalSeasonRef? season,
   }) async {
-    final clients = _clientsFor(serverIds);
+    // Deliberately unfiltered by hidden servers: this is identity resolution
+    // for trackers/watchlist ("do I own this?"), not a browse surface. Hiding a
+    // server from browsing should not make its copy of an item invisible to a
+    // Trakt sync.
+    final clients = {
+      for (final entry in _serverManager.onlineClients.entries)
+        if (serverIds.contains(entry.key)) entry.key: entry.value,
+    };
     final unqueriedServerIds = serverIds.difference(clients.keys.toSet());
     if (clients.isEmpty) {
       return (
