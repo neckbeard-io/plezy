@@ -729,6 +729,12 @@ class Translations$settings$en {
 	/// en: 'Click video to play/pause instead of showing controls.'
 	String get clickVideoTogglesPlaybackDescription => 'Click video to play/pause instead of showing controls.';
 
+	/// en: 'Plex-style OSD'
+	String get selectShowsOsdTimeline => 'Plex-style OSD';
+
+	/// en: 'OK/Select and Play/Pause show controls with the seek bar focused instead of toggling play/pause.'
+	String get selectShowsOsdTimelineDescription => 'OK/Select and Play/Pause show controls with the seek bar focused instead of toggling play/pause.';
+
 	/// en: 'Video Player Controls'
 	String get videoPlayerControls => 'Video Player Controls';
 
@@ -7532,6 +7538,8 @@ extension on Translations {
 			'settings.specialsOrderingLast' => 'After regular seasons',
 			'settings.clickVideoTogglesPlayback' => 'Click on video to toggle play/pause',
 			'settings.clickVideoTogglesPlaybackDescription' => 'Click video to play/pause instead of showing controls.',
+			'settings.selectShowsOsdTimeline' => 'Plex-style OSD',
+			'settings.selectShowsOsdTimelineDescription' => 'OK/Select and Play/Pause show controls with the seek bar focused instead of toggling play/pause.',
 			'settings.videoPlayerControls' => 'Video Player Controls',
 			'settings.keyboardShortcuts' => 'Keyboard Shortcuts',
 			'settings.keyboardShortcutsDescription' => 'Customize keyboard shortcuts',
@@ -7826,10 +7834,10 @@ extension on Translations {
 			'fileInfo.dolbyVision' => 'Dolby Vision',
 			'fileInfo.dolbyVisionLevel' => 'Dolby Vision Level',
 			'fileInfo.dolbyVisionVersion' => 'Dolby Vision Version',
-			'fileInfo.dolbyVisionLayers' => 'Dolby Vision Layers',
-			'fileInfo.baseLayerCompatibility' => 'Base Layer Compatibility',
 			_ => null,
 		} ?? switch (path) {
+			'fileInfo.dolbyVisionLayers' => 'Dolby Vision Layers',
+			'fileInfo.baseLayerCompatibility' => 'Base Layer Compatibility',
 			'fileInfo.avcBitstream' => 'AVC Bitstream',
 			'fileInfo.nalLengthSize' => 'NAL Length Size',
 			'fileInfo.scalingMatrix' => 'Custom Scaling Matrix',
@@ -8340,10 +8348,10 @@ extension on Translations {
 			'errors.reasonUnreachable' => 'the server could not be reached',
 			'errors.reasonRefused' => 'the server refused the request',
 			'errors.reasonNotFound' => 'the item is no longer on the server',
-			'errors.reasonServerError' => 'the server reported an error',
-			'errors.reasonCancelled' => 'the request was cancelled',
 			_ => null,
 		} ?? switch (path) {
+			'errors.reasonServerError' => 'the server reported an error',
+			'errors.reasonCancelled' => 'the request was cancelled',
 			'errors.reasonUnexpected' => 'an unexpected error occurred',
 			'libraries.title' => 'Libraries',
 			'libraries.fallbackTitle' => 'Library',
@@ -8854,10 +8862,10 @@ extension on Translations {
 			'watchTogether.hostTransferFailed' => ({required Object name}) => 'Couldn\'t make ${name} the host',
 			'watchTogether.watchingWithOthers' => 'Watching with others',
 			'watchTogether.endSession' => 'End Session',
-			'watchTogether.leaveSession' => 'Leave Session',
-			'watchTogether.endSessionQuestion' => 'End Session?',
 			_ => null,
 		} ?? switch (path) {
+			'watchTogether.leaveSession' => 'Leave Session',
+			'watchTogether.endSessionQuestion' => 'End Session?',
 			'watchTogether.leaveSessionQuestion' => 'Leave Session?',
 			'watchTogether.endSessionConfirm' => 'This will end the session for all participants.',
 			'watchTogether.leaveSessionConfirm' => 'You will be removed from the session.',
@@ -9368,10 +9376,10 @@ extension on Translations {
 			'services.pendingAuth.copyUrl' => 'Copy sign-in URL',
 			'services.pendingAuth.urlCopied' => 'URL copied',
 			'services.libraryFilter.title' => 'Library filter',
-			'services.libraryFilter.subtitleAllSyncing' => 'Syncing all libraries',
-			'services.libraryFilter.subtitleNoneSyncing' => 'Nothing syncing',
 			_ => null,
 		} ?? switch (path) {
+			'services.libraryFilter.subtitleAllSyncing' => 'Syncing all libraries',
+			'services.libraryFilter.subtitleNoneSyncing' => 'Nothing syncing',
 			'services.libraryFilter.subtitleBlocked' => ({required Object count}) => '${count} blocked',
 			'services.libraryFilter.subtitleAllowed' => ({required Object count}) => '${count} allowed',
 			'services.libraryFilter.mode' => 'Filter mode',
