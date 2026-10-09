@@ -1032,6 +1032,21 @@ class Translations$settings$en {
 	/// en: 'Reorder and hide libraries'
 	String get manageLibrariesDescription => 'Reorder and hide libraries';
 
+	/// en: 'Media Servers'
+	String get mediaServers => 'Media Servers';
+
+	/// en: 'Choose which servers appear in browsing'
+	String get mediaServersDescription => 'Choose which servers appear in browsing';
+
+	/// en: 'No servers connected'
+	String get noMediaServers => 'No servers connected';
+
+	/// en: 'Owned'
+	String get ownedServer => 'Owned';
+
+	/// en: 'Shared with you'
+	String get sharedServer => 'Shared with you';
+
 	/// en: 'Companion Remote Server'
 	String get companionRemoteServer => 'Companion Remote Server';
 
@@ -7712,6 +7727,11 @@ extension on Translations {
 			'settings.services' => 'Services',
 			'settings.servicesDescription' => 'Connect Trakt, MyAnimeList, Seerr, and more',
 			'settings.manageLibrariesDescription' => 'Reorder and hide libraries',
+			'settings.mediaServers' => 'Media Servers',
+			'settings.mediaServersDescription' => 'Choose which servers appear in browsing',
+			'settings.noMediaServers' => 'No servers connected',
+			'settings.ownedServer' => 'Owned',
+			'settings.sharedServer' => 'Shared with you',
 			'settings.companionRemoteServer' => 'Companion Remote Server',
 			'settings.companionRemoteServerDescription' => 'Allow mobile devices on your network to control this app',
 			'settings.companionRemoteServerStartFailed' => 'Couldn\'t start the companion server',
@@ -7902,13 +7922,13 @@ extension on Translations {
 			'fileInfo.colorPrimaries' => 'Color Primaries',
 			'fileInfo.colorTransfer' => 'Color Transfer',
 			'fileInfo.chromaSubsampling' => 'Chroma Subsampling',
+			_ => null,
+		} ?? switch (path) {
 			'fileInfo.chromaLocation' => 'Chroma Location',
 			'fileInfo.scanType' => 'Scan Type',
 			'fileInfo.interlaced' => 'Interlaced',
 			'fileInfo.anamorphic' => 'Anamorphic',
 			'fileInfo.referenceFrames' => 'Reference Frames',
-			_ => null,
-		} ?? switch (path) {
 			'fileInfo.dynamicRange' => 'Dynamic Range',
 			'fileInfo.dolbyVision' => 'Dolby Vision',
 			'fileInfo.dolbyVisionLevel' => 'Dolby Vision Level',
@@ -8416,13 +8436,13 @@ extension on Translations {
 			'errors.connectionTimeout' => ({required Object context}) => 'Connection timeout while loading ${context}',
 			'errors.connectionFailed' => 'Unable to connect to media server',
 			'errors.unableToLoad' => ({required Object context}) => 'Unable to load ${context}. Please try again.',
+			_ => null,
+		} ?? switch (path) {
 			'errors.noClientAvailable' => 'No client available',
 			'errors.pleaseEnterToken' => 'Please enter a token',
 			'errors.invalidToken' => 'Invalid token',
 			'errors.failedToVerifyToken' => ({required Object error}) => 'Failed to verify token: ${error}',
 			'errors.failedToSwitchProfile' => ({required Object displayName}) => 'Failed to switch to ${displayName}',
-			_ => null,
-		} ?? switch (path) {
 			'errors.failedToDeleteProfile' => ({required Object displayName}) => 'Failed to delete ${displayName}',
 			'errors.failedToRate' => 'Couldn\'t update rating',
 			'errors.reasonTimedOut' => 'the connection timed out',
@@ -8930,13 +8950,13 @@ extension on Translations {
 			'watchTogether.anyoneControls' => 'Anyone controls',
 			'watchTogether.participants' => 'Participants',
 			'watchTogether.host' => 'Host',
+			_ => null,
+		} ?? switch (path) {
 			'watchTogether.hostBadge' => 'HOST',
 			'watchTogether.youAreHost' => 'You are the host',
 			'watchTogether.makeHost' => 'Make host',
 			'watchTogether.makeHostQuestion' => 'Transfer host?',
 			'watchTogether.makeHostConfirm' => ({required Object name}) => '${name} will control playback and drive the session for everyone.',
-			_ => null,
-		} ?? switch (path) {
 			'watchTogether.transfer' => 'Transfer',
 			'watchTogether.hostChangedTo' => ({required Object name}) => '${name} is now the host',
 			'watchTogether.youAreNowHost' => 'You are now the host',
@@ -9444,13 +9464,13 @@ extension on Translations {
 			'services.title' => 'Services',
 			'services.hubSubtitle' => 'Sync watch progress and request new titles.',
 			'services.integrations' => 'Integrations',
+			_ => null,
+		} ?? switch (path) {
 			'services.notConnected' => 'Not connected',
 			'services.connectedAs' => ({required Object username}) => 'Connected as @${username}',
 			'services.scrobble' => 'Track progress automatically',
 			'services.scrobbleDescription' => 'Update your list when you finish an episode or movie.',
 			'services.disconnectConfirm' => ({required Object service}) => 'Disconnect ${service}?',
-			_ => null,
-		} ?? switch (path) {
 			'services.disconnectConfirmBody' => ({required Object service}) => 'Plezy will stop updating ${service}. Reconnect any time.',
 			'services.connectFailed' => ({required Object service}) => 'Couldn\'t connect to ${service}. Try again.',
 			'services.names.mal' => 'MyAnimeList',
