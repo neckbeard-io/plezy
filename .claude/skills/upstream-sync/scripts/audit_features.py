@@ -38,6 +38,14 @@ def latest_version(prefix, below=None):
 def lines(out):
     return [l for l in out.splitlines() if l.strip()]
 
+def identity_warning(commit, expected):
+    # cherry-pick copies the original author, so a bad email spreads to every new release branch.
+    _, emails, _ = run(f"git log -n 1 --format='%ae|%ce' {commit}")
+    author, committer = emails.split("|")
+    if author == expected and committer == expected:
+        return ""
+    return f"  !! identity <{author}>/<{committer}>, reset with --reset-author"
+
 def main():
     if len(sys.argv) < 2:
         print("usage: audit_features.py <target-version> [<prev-version>]")
@@ -48,6 +56,8 @@ def main():
         print("No previous testing-release-<semver> branch found; pass <prev-version> explicitly.")
         sys.exit(1)
     prev_branch = f"testing-release-{prev}"
+
+    expected_email = run("git config user.email")[1]
 
     print(f"=== Auditing Plezy custom features: {prev} -> {target} ===")
 
@@ -69,7 +79,7 @@ def main():
 
         for c in commits:
             summary = run(f"git log -n 1 --format='%h %s' {c}")[1]
-            print(f"  Commit: {summary}")
+            print(f"  Commit: {summary}{identity_warning(c, expected_email)}")
 
         files = " ".join(lines(run(f"git diff --name-only {base} {branch}")[1]))
         upstream_touches = lines(run(f"git log {prev}..{target} --oneline -- {files}")[1]) if files else []
@@ -95,7 +105,7 @@ def main():
     if not loose:
         print("  (none)")
     for line in loose:
-        print(f"  {line}")
+        print(f"  {line}{identity_warning(line.split()[0], expected_email)}")
 
 if __name__ == "__main__":
     main()

@@ -14,7 +14,7 @@ Reference catalog for auditing and re-integrating local customizations when pull
 * **Audit Check against Upstream**:
   - Check if upstream modified seek dispatch or added transient event suppression in `seeking.dart` or ExoPlayer controllers.
 * **Commit History Reference**:
-  - `d7636206` (`android-seeking-fix-2.23.0`)
+  - `c25b471f` (`android-seeking-fix-2.23.0`)
 
 ---
 
@@ -25,7 +25,7 @@ Reference catalog for auditing and re-integrating local customizations when pull
 * **Audit Check against Upstream**:
   - Check if upstream altered image caching URI construction or made image keys server-agnostic.
 * **Commit History Reference**:
-  - `53ecdc39` (`view-all-breaks-media-2.23.0`)
+  - `4ee8a759` (`view-all-breaks-media-2.23.0`)
 
 ---
 
@@ -38,7 +38,7 @@ Reference catalog for auditing and re-integrating local customizations when pull
 * **Audit Check against Upstream**:
   - Check if upstream added episode guest star / crew parsing to `MediaItem` or the TV episode details screen.
 * **Commit History Reference**:
-  - `8aafb233` (`per-episode-cast-2.23.0`)
+  - `f134ba1b` (`per-episode-cast-2.23.0`)
 
 ---
 
@@ -49,7 +49,7 @@ Reference catalog for auditing and re-integrating local customizations when pull
 * **Audit Check against Upstream**:
   - Check upstream commits touching `discover_provider.dart` for watch state invalidation or local watch patch settling.
 * **Commit History Reference**:
-  - `45a6b5ff` (`watched-refresh-2.23.0`)
+  - `ba9f7f2d` (`watched-refresh-2.23.0`)
 
 ---
 
@@ -61,7 +61,7 @@ Reference catalog for auditing and re-integrating local customizations when pull
 * **Audit Check against Upstream**:
   - Check upstream changes to "Play Next" / auto-advance dialog cancellation and player exit handling.
 * **Commit History Reference**:
-  - `73fe9633` (`next-up-fixes-2.23.0`)
+  - `07203ccb` (`next-up-fixes-2.23.0`)
 
 ---
 
@@ -74,7 +74,7 @@ Reference catalog for auditing and re-integrating local customizations when pull
 * **Audit Check against Upstream**:
   - Check if upstream implemented context menus for seasons/shows or D-pad long-press actions on cards.
 * **Commit History Reference**:
-  - `c7fa0377` (`season-show-long-press-2.23.0`)
+  - `85e41693` (`season-show-long-press-2.23.0`)
 
 ---
 
@@ -89,7 +89,7 @@ Reference catalog for auditing and re-integrating local customizations when pull
 * **Audit Check against Upstream**:
   - Check upstream commits touching `key_events.dart`, `visibility.dart`, and `player_chrome_controller.dart` (e.g. key event classification refactors).
 * **Commit History Reference**:
-  - `dae7330c` (`osd-focus-changes-2.23.0`)
+  - `ef37603e` (`osd-focus-changes-2.23.0`)
 
 ---
 
@@ -103,20 +103,18 @@ Reference catalog for auditing and re-integrating local customizations when pull
 * **Audit Check against Upstream**:
   - Check upstream skip marker behavior (e.g. per-marker skip modes, dismiss on Back). Ensure `suppressSkipReappearance` and D-pad navigation down to the timeline are preserved.
 * **Commit History Reference**:
-  - `83f90c37` (`skip-credit-changes-2.23.0`)
+  - `63434e8b` (`skip-credit-changes-2.23.0`)
 
 ---
 
 ## 9. `playlist-enhancements`
-* **Purpose**: Adds playlist resume support (resumes at the first unwatched or partially-watched item instead of always playing from index 0) and adds D-pad long-press context menus on playlist cards and playlist item rows.
+* **Purpose**: Adds playlist resume support (Play resumes at the first partially-watched, else first unwatched, item; a "Play from Beginning" app-bar action keeps the old behaviour) and makes Back leave the playlist in a single press. D-pad long-press context menus on playlist rows were upstreamed in `7cc2f4c6` and are no longer carried.
 * **Key Files**:
   - `lib/screens/playlist/playlist_detail_screen.dart`
-  - `lib/screens/playlist/playlist_item_card.dart`
-  - `lib/media/media_playlist.dart`
 * **Audit Check against Upstream**:
-  - Check if upstream added playlist resume or playlist item context menus.
+  - Check if upstream added playlist resume or changed playlist Back handling.
 * **Commit History Reference**:
-  - `c2c8680a` (`playlist-enhancements-2.20.0`) is the last branch carrying it. The 2.22.0 and 2.23.0 branches are empty. Upstream `7cc2f4c6` added a TV playlist context menu, but playlist resume is not upstream, so this may have been dropped by accident; verify before the next sync.
+  - `2b756c7a` (`playlist-enhancements-2.23.0`), restored after being dropped in the 2.22.0 sync
 
 ---
 
@@ -130,4 +128,4 @@ Reference catalog for auditing and re-integrating local customizations when pull
 * **Audit Check against Upstream**:
   - Check upstream settings and library providers for any server visibility/hiding features.
 * **Commit History Reference**:
-  - `015693c8` (`per-server-visibility-2.23.0`)
+  - `7cf14f20` (`per-server-visibility-2.23.0`)

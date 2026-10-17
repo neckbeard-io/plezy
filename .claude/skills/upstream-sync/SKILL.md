@@ -22,7 +22,8 @@ The goal is that **every** local customization survives the sync: the 10 portfol
 * **Guard Upstream via `main`**: Upstream tags and releases are brought into local `main`, which is then pushed to `origin/main`. `main` carries no local changes.
 * **All Branches Push to `origin`**: The integration branch (`testing-release-<version>`) and feature branches (`<feature>-<version>`) are branched from `main` and pushed only to `origin`.
 * **Non-interactive git only**: Use `-m`, `--no-edit`, and `GIT_EDITOR=true`. Never use `-i`.
-* **Commit identity**: Commit as configured (`brutog`); check `git config user.email` before the first commit. Use Conventional Commits and no AI/co-author trailers (see the user's git rules).
+* **Commit identity**: Commit as configured (`brutog <brutog@users.noreply.github.com>`); check `git config user.email` before the first commit. Use Conventional Commits and no AI/co-author trailers (see the user's git rules).
+* **Re-stamp every carried commit**: `git cherry-pick` keeps the original author, so a bad identity on an old commit gets copied into every new release branch. Pick commits one at a time, and right after each pick (or `cherry-pick --continue`) run `git commit --amend --no-edit --reset-author`.
 
 ---
 
@@ -83,6 +84,8 @@ python3 .claude/skills/upstream-sync/scripts/audit_features.py <target-version> 
 ```
 For each feature, the script finds the newest `<feature>-<semver>` branch, lists its commits on top of the release it was built on, counts upstream commits touching the same files since `PREV`, and dry-runs the cherry-pick with `git merge-tree`. It also lists **loose commits** made directly on `testing-release-${PREV}` (outside the feature merges) that must be carried forward too.
 
+It also flags any feature or loose commit whose author or committer email isn't the configured `user.email`; reset those when carrying them over.
+
 It flags a feature whose latest branch has **no commits** of its own. That means the feature was either upstreamed or dropped by accident in a past sync. Find the last version branch that still has the commit and check whether upstream really covers it before treating it as upstreamed.
 
 Then for each feature, in portfolio order:
@@ -92,7 +95,8 @@ Then for each feature, in portfolio order:
 2. **Clean Apply**:
    ```bash
    git checkout -b "<feature>-${VERSION}" main
-   git cherry-pick <commit(s)>
+   git cherry-pick <commit>                        # one commit at a time
+   git commit --amend --no-edit --reset-author     # cherry-pick keeps the old author
    git checkout "testing-release-${VERSION}"
    git merge --no-ff --no-edit "<feature>-${VERSION}"
    ```
@@ -101,8 +105,8 @@ Then for each feature, in portfolio order:
    - Port the feature's *intent* onto the new structure. Don't drop hunks just to make the conflict go away.
    - If the resolution needs a real architectural choice or trade-off (e.g. keep our setting vs. adopt upstream's equivalent, or which of two behaviors wins), ask the user with `AskUserQuestion` before continuing.
    - Generated i18n files (`lib/i18n/strings*.g.dart`) conflict on almost every sync. Don't hand-merge them: resolve the source `lib/i18n/*.i18n.json` files, then regenerate with `dart run slang` and stage the output.
-   - Finish with `GIT_EDITOR=true git cherry-pick --continue`, then merge into `testing-release-${VERSION}` as above.
-4. **Loose commits**: Cherry-pick each loose commit the audit listed straight onto `testing-release-${VERSION}`. Skip earlier "restore skills directory" commits, since step 4 covers them. Run the same redundancy check: if upstream fixed the same bug, drop the commit and say so.
+   - Finish with `GIT_EDITOR=true git cherry-pick --continue` and `git commit --amend --no-edit --reset-author`, then merge into `testing-release-${VERSION}` as above.
+4. **Loose commits**: Cherry-pick each loose commit the audit listed straight onto `testing-release-${VERSION}`, resetting the author after each one. Skip earlier "restore skills directory" commits, since step 4 covers them. Run the same redundancy check: if upstream fixed the same bug, drop the commit and say so.
 
 ### 6. Verify Build & Tests
 ```bash
@@ -117,7 +121,12 @@ Before pushing, confirm every feature is present:
 ```bash
 git log --oneline --first-parent "${VERSION}..testing-release-${VERSION}"
 ```
-There should be one merge per non-upstreamed feature plus the carried loose commits. For any feature you resolved by hand, spot-check its key files for its marker symbols (e.g. `selectShowsOsdTimeline`, `suppressSkipReappearance`, `HiddenServersProvider`).
+There should be one merge per non-upstreamed feature plus the carried loose commits. Then confirm every new commit carries the right identity. This must print nothing:
+```bash
+git log --format='%h %ae %ce %s' "${VERSION}..testing-release-${VERSION}" \
+  | grep -v ' brutog@users.noreply.github.com brutog@users.noreply.github.com '
+```
+For any feature you resolved by hand, spot-check its key files for its marker symbols (e.g. `selectShowsOsdTimeline`, `suppressSkipReappearance`, `HiddenServersProvider`).
 
 ### 8. Push to `origin`
 ```bash

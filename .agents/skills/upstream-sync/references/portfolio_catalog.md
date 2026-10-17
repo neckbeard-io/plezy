@@ -1,5 +1,7 @@
 # Plezy Custom Feature Portfolio Catalog
 
+Commit references are the tips of the most recent `<feature>-<version>` branches. Update them after every sync. Always confirm against `git branch --list '<feature>-*'`.
+
 Reference catalog for auditing and re-integrating local customizations when pulling new upstream releases.
 
 ---
@@ -12,7 +14,7 @@ Reference catalog for auditing and re-integrating local customizations when pull
 * **Audit Check against Upstream**:
   - Check if upstream modified seek dispatch or added transient event suppression in `seeking.dart` or ExoPlayer controllers.
 * **Commit History Reference**:
-  - `015b5c59` (`android-seeking-fix-2026-08-26`)
+  - `c25b471f` (`android-seeking-fix-2.23.0`)
 
 ---
 
@@ -23,7 +25,7 @@ Reference catalog for auditing and re-integrating local customizations when pull
 * **Audit Check against Upstream**:
   - Check if upstream altered image caching URI construction or made image keys server-agnostic.
 * **Commit History Reference**:
-  - `15319119` (`view-all-breaks-media-2026-08-26`)
+  - `4ee8a759` (`view-all-breaks-media-2.23.0`)
 
 ---
 
@@ -36,7 +38,7 @@ Reference catalog for auditing and re-integrating local customizations when pull
 * **Audit Check against Upstream**:
   - Check if upstream added episode guest star / crew parsing to `MediaItem` or the TV episode details screen.
 * **Commit History Reference**:
-  - `5d386d0c` (`per-episode-cast-2026-08-26`)
+  - `f134ba1b` (`per-episode-cast-2.23.0`)
 
 ---
 
@@ -47,7 +49,7 @@ Reference catalog for auditing and re-integrating local customizations when pull
 * **Audit Check against Upstream**:
   - Check upstream commits touching `discover_provider.dart` for watch state invalidation or local watch patch settling.
 * **Commit History Reference**:
-  - `9108b1dc` (`watched-refresh-2026-08-26`)
+  - `ba9f7f2d` (`watched-refresh-2.23.0`)
 
 ---
 
@@ -59,7 +61,7 @@ Reference catalog for auditing and re-integrating local customizations when pull
 * **Audit Check against Upstream**:
   - Check upstream changes to "Play Next" / auto-advance dialog cancellation and player exit handling.
 * **Commit History Reference**:
-  - `e5ca7a65` (`next-up-fixes-2026-08-26`)
+  - `07203ccb` (`next-up-fixes-2.23.0`)
 
 ---
 
@@ -72,7 +74,7 @@ Reference catalog for auditing and re-integrating local customizations when pull
 * **Audit Check against Upstream**:
   - Check if upstream implemented context menus for seasons/shows or D-pad long-press actions on cards.
 * **Commit History Reference**:
-  - `b21c2d11` (`season-show-long-press-2026-08-26`)
+  - `85e41693` (`season-show-long-press-2.23.0`)
 
 ---
 
@@ -87,12 +89,12 @@ Reference catalog for auditing and re-integrating local customizations when pull
 * **Audit Check against Upstream**:
   - Check upstream commits touching `key_events.dart`, `visibility.dart`, and `player_chrome_controller.dart` (e.g. key event classification refactors).
 * **Commit History Reference**:
-  - `b8661f49` (`osd-focus-changes-2026-08-26`)
+  - `ef37603e` (`osd-focus-changes-2.23.0`)
 
 ---
 
 ## 8. `skip-credit-changes`
-* **Purpose**: Adds "Suppress Skip Reappearance" setting (`suppressSkipReappearance`) to ensure intro/credit buttons appear at most once per video session (and suppresses repeated false-positive credits markers in long broadcasts/UFC events). Also routes DOWN navigation off the skip button directly to the timeline seek bar.
+* **Purpose**: Adds "Suppress Skip Reappearance" setting (`suppressSkipReappearance`) to ensure intro/credit buttons appear at most once per video session (and suppresses repeated false-positive credits markers in long broadcasts/UFC events). Also routes DOWN navigation off the skip button directly to the timeline seek bar. Suppressed markers stay reachable via the OSD or ArrowUp. Upstream #2049 handles dismissing skip markers on Back natively.
 * **Key Files**:
   - `lib/services/settings_service.dart`
   - `lib/widgets/video_controls/parts/markers.dart`
@@ -101,20 +103,18 @@ Reference catalog for auditing and re-integrating local customizations when pull
 * **Audit Check against Upstream**:
   - Check upstream skip marker behavior (e.g. per-marker skip modes, dismiss on Back). Ensure `suppressSkipReappearance` and D-pad navigation down to the timeline are preserved.
 * **Commit History Reference**:
-  - `651c39a5` (`skip-credit-changes-2026-08-26`)
+  - `63434e8b` (`skip-credit-changes-2.23.0`)
 
 ---
 
 ## 9. `playlist-enhancements`
-* **Purpose**: Adds playlist resume support (resumes at the first unwatched or partially-watched item instead of always playing from index 0) and adds D-pad long-press context menus on playlist cards and playlist item rows.
+* **Purpose**: Adds playlist resume support (Play resumes at the first partially-watched, else first unwatched, item; a "Play from Beginning" app-bar action keeps the old behaviour) and makes Back leave the playlist in a single press. D-pad long-press context menus on playlist rows were upstreamed in `7cc2f4c6` and are no longer carried.
 * **Key Files**:
-  - `lib/screens/playlist_detail_screen.dart`
-  - `lib/widgets/cards/playlist_item_card.dart`
-  - `lib/media/media_playlist.dart`
+  - `lib/screens/playlist/playlist_detail_screen.dart`
 * **Audit Check against Upstream**:
-  - Check if upstream added playlist resume or playlist item context menus.
+  - Check if upstream added playlist resume or changed playlist Back handling.
 * **Commit History Reference**:
-  - `95420eee` (`playlist-enhancements-2026-08-26`)
+  - `2b756c7a` (`playlist-enhancements-2.23.0`), restored after being dropped in the 2.22.0 sync
 
 ---
 
@@ -128,4 +128,4 @@ Reference catalog for auditing and re-integrating local customizations when pull
 * **Audit Check against Upstream**:
   - Check upstream settings and library providers for any server visibility/hiding features.
 * **Commit History Reference**:
-  - `0fbea093` (`per-server-visibility-2026-08-26`)
+  - `7cf14f20` (`per-server-visibility-2.23.0`)
