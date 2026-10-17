@@ -4000,6 +4000,9 @@ class Translations$playlists$en {
 	/// en: 'Remove from Playlist'
 	String get removeItem => 'Remove from Playlist';
 
+	/// en: 'Play from Beginning'
+	String get playFromBeginning => 'Play from Beginning';
+
 	/// en: 'Smart Playlist'
 	String get smartPlaylist => 'Smart Playlist';
 
@@ -8838,6 +8841,7 @@ extension on Translations {
 			'playlists.enterPlaylistName' => 'Enter playlist name',
 			'playlists.delete' => 'Delete Playlist',
 			'playlists.removeItem' => 'Remove from Playlist',
+			'playlists.playFromBeginning' => 'Play from Beginning',
 			'playlists.smartPlaylist' => 'Smart Playlist',
 			'playlists.itemCount' => ({required Object count}) => '${count} items',
 			'playlists.oneItem' => '1 item',
@@ -8916,9 +8920,9 @@ extension on Translations {
 			'watchTogether.youAreNowHost' => 'You are now the host',
 			'watchTogether.hostTransferFailed' => ({required Object name}) => 'Couldn\'t make ${name} the host',
 			'watchTogether.watchingWithOthers' => 'Watching with others',
-			'watchTogether.endSession' => 'End Session',
 			_ => null,
 		} ?? switch (path) {
+			'watchTogether.endSession' => 'End Session',
 			'watchTogether.leaveSession' => 'Leave Session',
 			'watchTogether.endSessionQuestion' => 'End Session?',
 			'watchTogether.leaveSessionQuestion' => 'Leave Session?',
@@ -9430,9 +9434,9 @@ extension on Translations {
 			'services.names.mal' => 'MyAnimeList',
 			'services.names.anilist' => 'AniList',
 			'services.names.simkl' => 'Simkl',
-			'services.names.seerr' => 'Seerr',
 			_ => null,
 		} ?? switch (path) {
+			'services.names.seerr' => 'Seerr',
 			'services.names.mdblist' => 'MDBList',
 			'services.simklReconnect.title' => 'Reconnect Simkl',
 			'services.simklReconnect.subtitle' => 'Simkl is retiring the sign-in method this connection uses. Reconnecting opens simkl.com to approve Plezy — Plezy never sees your password. Your watch history stays on Simkl.',
