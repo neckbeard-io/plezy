@@ -795,6 +795,11 @@ class SettingsService extends BaseSharedPreferencesService {
   static const librariesSectionExpanded = BoolPref('libraries_section_expanded', defaultValue: true);
   static const showUnwatchedCount = BoolPref('show_unwatched_count', defaultValue: true);
 
+  /// Shows the unwatched pill as watched/total episodes instead, and adds the
+  /// series' count to episode cards such as Continue Watching. Only applies
+  /// while [showUnwatchedCount] is on.
+  static const showWatchedTotalCount = BoolPref('show_watched_total_count', defaultValue: true);
+
   /// The corner checkmark on watched posters/thumbnails (#1998). Progress bars
   /// and unwatched counts are unaffected.
   static const showWatchedIndicators = BoolPref('show_watched_indicators', defaultValue: true);
@@ -1425,6 +1430,7 @@ class SettingsService extends BaseSharedPreferencesService {
     alwaysKeepSidebarOpen,
     librariesSectionExpanded,
     showUnwatchedCount,
+    showWatchedTotalCount,
     showWatchedIndicators,
     showEpisodeNumberOnCards,
     showSeasonPostersOnTabs,

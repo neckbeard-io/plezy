@@ -546,6 +546,12 @@ class Translations$settings$en {
 	/// en: 'Display unwatched episode count on shows and seasons'
 	String get showUnwatchedCountDescription => 'Display unwatched episode count on shows and seasons';
 
+	/// en: 'Show Watched / Total'
+	String get showWatchedTotalCount => 'Show Watched / Total';
+
+	/// en: 'Show the count as watched / total episodes, including the series count on Continue Watching episodes'
+	String get showWatchedTotalCountDescription => 'Show the count as watched / total episodes, including the series count on Continue Watching episodes';
+
 	/// en: 'Show Watched Indicators'
 	String get showWatchedIndicators => 'Show Watched Indicators';
 
@@ -7568,6 +7574,8 @@ extension on Translations {
 			'settings.alwaysKeepSidebarOpenDescription' => 'Sidebar stays expanded and content area adjusts to fit',
 			'settings.showUnwatchedCount' => 'Show Unwatched Count',
 			'settings.showUnwatchedCountDescription' => 'Display unwatched episode count on shows and seasons',
+			'settings.showWatchedTotalCount' => 'Show Watched / Total',
+			'settings.showWatchedTotalCountDescription' => 'Show the count as watched / total episodes, including the series count on Continue Watching episodes',
 			'settings.showWatchedIndicators' => 'Show Watched Indicators',
 			'settings.showWatchedIndicatorsDescription' => 'Display a checkmark on watched movies, shows, and episodes',
 			'settings.showEpisodeNumberOnCards' => 'Show Episode Number on Cards',
@@ -7923,10 +7931,10 @@ extension on Translations {
 			'fileInfo.colorSpace' => 'Color Space',
 			'fileInfo.colorRange' => 'Color Range',
 			'fileInfo.colorPrimaries' => 'Color Primaries',
-			'fileInfo.colorTransfer' => 'Color Transfer',
-			'fileInfo.chromaSubsampling' => 'Chroma Subsampling',
 			_ => null,
 		} ?? switch (path) {
+			'fileInfo.colorTransfer' => 'Color Transfer',
+			'fileInfo.chromaSubsampling' => 'Chroma Subsampling',
 			'fileInfo.chromaLocation' => 'Chroma Location',
 			'fileInfo.scanType' => 'Scan Type',
 			'fileInfo.interlaced' => 'Interlaced',
@@ -8437,10 +8445,10 @@ extension on Translations {
 			'errors.searchFailed' => ({required Object error}) => 'Search failed: ${error}',
 			'errors.searchUnavailable' => 'Search could not reach any media server.',
 			'errors.connectionTimeout' => ({required Object context}) => 'Connection timeout while loading ${context}',
-			'errors.connectionFailed' => 'Unable to connect to media server',
-			'errors.unableToLoad' => ({required Object context}) => 'Unable to load ${context}. Please try again.',
 			_ => null,
 		} ?? switch (path) {
+			'errors.connectionFailed' => 'Unable to connect to media server',
+			'errors.unableToLoad' => ({required Object context}) => 'Unable to load ${context}. Please try again.',
 			'errors.noClientAvailable' => 'No client available',
 			'errors.pleaseEnterToken' => 'Please enter a token',
 			'errors.invalidToken' => 'Invalid token',
@@ -8951,10 +8959,10 @@ extension on Translations {
 			'watchTogether.hostControlsPlayback' => 'Host controls playback',
 			'watchTogether.anyoneCanControl' => 'Anyone can control playback',
 			'watchTogether.hostControls' => 'Host controls',
-			'watchTogether.anyoneControls' => 'Anyone controls',
-			'watchTogether.participants' => 'Participants',
 			_ => null,
 		} ?? switch (path) {
+			'watchTogether.anyoneControls' => 'Anyone controls',
+			'watchTogether.participants' => 'Participants',
 			'watchTogether.host' => 'Host',
 			'watchTogether.hostBadge' => 'HOST',
 			'watchTogether.youAreHost' => 'You are the host',
@@ -9465,10 +9473,10 @@ extension on Translations {
 			'seerr.sessionRejectedAfterReauth' => 'The session was rejected after signing in again',
 			'seerr.permissionDenied' => 'Seerr denied this action: your account no longer has the required permission',
 			'seerr.permissionRevoked' => 'You no longer have permission to request this',
-			'services.title' => 'Services',
-			'services.hubSubtitle' => 'Sync watch progress and request new titles.',
 			_ => null,
 		} ?? switch (path) {
+			'services.title' => 'Services',
+			'services.hubSubtitle' => 'Sync watch progress and request new titles.',
 			'services.integrations' => 'Integrations',
 			'services.notConnected' => 'Not connected',
 			'services.connectedAs' => ({required Object username}) => 'Connected as @${username}',

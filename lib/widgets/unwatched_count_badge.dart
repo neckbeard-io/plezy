@@ -11,7 +11,10 @@ class UnwatchedCountBadge extends StatelessWidget {
   final double size;
   final double fontSize;
 
-  const UnwatchedCountBadge({super.key, required this.count, this.size = 24, this.fontSize = 12});
+  /// Text shown instead of [count], e.g. "3/10" for the watched/total format.
+  final String? label;
+
+  const UnwatchedCountBadge({super.key, required this.count, this.size = 24, this.fontSize = 12, this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +32,7 @@ class UnwatchedCountBadge extends StatelessWidget {
       child: Center(
         widthFactor: 1,
         child: Text(
-          count > 999 ? '999+' : '$count',
+          label ?? (count > 999 ? '999+' : '$count'),
           maxLines: 1,
           softWrap: false,
           style: TextStyle(color: tokens(context).bg, fontSize: fontSize, fontWeight: .bold),
