@@ -325,6 +325,7 @@ class _MobileVideoControlsState extends State<MobileVideoControls> with SingleTi
         child: VideoControlsHeader(
           metadata: widget.metadata,
           style: VideoHeaderStyle.multiLine,
+          player: widget.player,
           onCancelAutoHide: widget.onCancelAutoHide,
           onStartAutoHide: widget.onStartAutoHide,
           trailing: widget.trackChapterControls,

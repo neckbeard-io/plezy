@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:plezy/utils/formatters.dart';
 
 import '../../../media/media_item.dart';
+import '../../../media/media_item_types.dart';
+import '../../../mpv/player/active_player_type.dart';
+import '../../../mpv/player/player.dart';
 import '../../../i18n/strings.g.dart';
 import '../../../watch_together/widgets/watch_together_overlay.dart';
 import '../../../watch_together/providers/watch_together_provider.dart';
@@ -26,6 +29,10 @@ class VideoControlsHeader extends StatelessWidget {
   final MediaItem metadata;
   final VideoHeaderStyle style;
 
+  /// When set, the header names the engine playing (ExoPlayer or MPV) and
+  /// updates when ExoPlayer falls back to mpv.
+  final Player? player;
+
   /// Optional trailing widget (e.g., track/chapter controls)
   final Widget? trailing;
 
@@ -43,6 +50,7 @@ class VideoControlsHeader extends StatelessWidget {
     super.key,
     required this.metadata,
     this.style = VideoHeaderStyle.multiLine,
+    this.player,
     this.trailing,
     this.onBack,
     this.onCancelAutoHide,
@@ -87,6 +95,16 @@ class VideoControlsHeader extends StatelessWidget {
     );
   }
 
+  /// Air date for episodes, release year for movies.
+  String? _releaseLabel() {
+    if (metadata.isEpisode) {
+      final airDate = metadata.originallyAvailableAt;
+      return airDate != null && airDate.isNotEmpty ? formatAbbreviatedDate(airDate) : null;
+    }
+    if (metadata.isMovie && metadata.year != null) return '${metadata.year}';
+    return null;
+  }
+
   Widget _buildSingleLineTitle(String itemTitle) {
     final seriesName = metadata.grandparentTitle ?? itemTitle;
     final hasEpisodeInfo = metadata.parentIndex != null && metadata.index != null;
@@ -98,11 +116,27 @@ class VideoControlsHeader extends StatelessWidget {
       parts.add(itemTitle);
     }
 
-    return Text(
-      toBulletedString(parts),
-      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: .w500),
-      maxLines: 1,
-      overflow: .ellipsis,
+    final releaseLabel = _releaseLabel();
+    if (releaseLabel != null) parts.add(releaseLabel);
+
+    return _withPlayerLabel(
+      (playerLabel) => Text(
+        toBulletedString([...parts, ?playerLabel]),
+        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: .w500),
+        maxLines: 1,
+        overflow: .ellipsis,
+      ),
+    );
+  }
+
+  /// Rebuilds [builder] with the active player's label, or null without a
+  /// [player]. ExoPlayer can hand a file to mpv mid-session, so it listens.
+  Widget _withPlayerLabel(Widget Function(String? playerLabel) builder) {
+    final player = this.player;
+    if (player == null) return builder(null);
+    return StreamBuilder<void>(
+      stream: player.streams.backendSwitched,
+      builder: (context, _) => builder(player.activePlayerLabel),
     );
   }
 
@@ -114,6 +148,10 @@ class VideoControlsHeader extends StatelessWidget {
       secondLineParts.add('E${metadata.index}');
       secondLineParts.add(itemTitle);
     }
+
+    // Just left of the runtime, which stays the rightmost value.
+    final releaseLabel = _releaseLabel();
+    if (releaseLabel != null) secondLineParts.add(releaseLabel);
 
     if (metadata.durationMs != null) {
       secondLineParts.add(formatDurationTextual(metadata.durationMs!));
@@ -135,6 +173,16 @@ class VideoControlsHeader extends StatelessWidget {
             maxLines: 1,
             overflow: .ellipsis,
           ),
+        _withPlayerLabel(
+          (playerLabel) => playerLabel == null
+              ? const SizedBox.shrink()
+              : Text(
+                  playerLabel,
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  maxLines: 1,
+                  overflow: .ellipsis,
+                ),
+        ),
       ],
     );
   }

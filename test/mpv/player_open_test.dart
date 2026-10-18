@@ -5,6 +5,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plezy/mpv/mpv.dart';
+import 'package:plezy/mpv/player/active_player_type.dart';
 import 'package:plezy/mpv/player/platform/player_android.dart';
 import 'package:plezy/mpv/player/player_native.dart';
 import 'package:plezy/services/settings_service.dart';
@@ -571,10 +572,12 @@ void main() {
             _seedTracks(player);
             expect(player.state.tracks.audio, isNotEmpty);
             expect(player.needsDecoderRefreshAfterDisplaySwitch, isFalse);
+            expect(player.activePlayerLabel, 'ExoPlayer');
 
             player.handlePlayerEvent('backend-switched', null);
 
             expect(player.needsDecoderRefreshAfterDisplaySwitch, isTrue);
+            expect(player.activePlayerLabel, 'MPV', reason: 'the OSD names the engine actually playing');
             expect(player.state.tracks.audio, isEmpty);
             expect(player.state.tracks.subtitle, isEmpty);
 
