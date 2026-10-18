@@ -1,111 +1,151 @@
 #!/usr/bin/env python3
+"""Audit local commits on the previous testing-release branch against a new upstream tag.
+
+Lists every local commit in carry-forward order, tags it with its portfolio feature,
+dry-runs cherry-picking them in sequence onto the target, and flags conflicts,
+identity problems, and portfolio features that no longer have any commits.
+"""
 import re
 import subprocess
 import sys
 
-FEATURE_NAMES = [
-    "android-seeking-fix",
-    "view-all-breaks-media",
-    "per-episode-cast",
-    "watched-refresh",
-    "next-up-fixes",
-    "season-show-long-press",
-    "osd-focus-changes",
-    "skip-credit-changes",
-    "playlist-enhancements",
-    "per-server-visibility",
-]
+# Key files per feature, mirroring references/portfolio_catalog.md. Used only to
+# label commits; a commit matching none is reported as a loose commit.
+FEATURES = {
+    "android-seeking-fix": ["android/app/src/main/kotlin/com/edde746/plezy/exoplayer/ExoPlayerCore.kt"],
+    "view-all-breaks-media": ["lib/utils/media_image_helper.dart"],
+    "per-episode-cast": ["lib/screens/media_detail_screen.dart"],
+    "watched-refresh": ["lib/providers/discover_provider.dart", "lib/screens/discover_screen.dart"],
+    "next-up-fixes": ["lib/screens/video_player/parts/playback_prompts.dart"],
+    "season-show-long-press": ["lib/widgets/media_context_menu.dart"],
+    "osd-focus-changes": [
+        "lib/widgets/video_controls/player_chrome_controller.dart",
+        "lib/widgets/video_controls/desktop_video_controls.dart",
+        "lib/widgets/video_controls/parts/visibility.dart",
+        "lib/widgets/video_controls/parts/key_events.dart",
+        "lib/screens/video_player/parts/episode_navigation.dart",
+    ],
+    "skip-credit-changes": ["lib/widgets/video_controls/parts/markers.dart", "lib/screens/settings/playback_settings_screen.dart"],
+    "playlist-enhancements": ["lib/screens/playlist/playlist_detail_screen.dart"],
+    "per-server-visibility": [
+        "lib/providers/hidden_servers_provider.dart",
+        "lib/screens/settings/media_servers_screen.dart",
+        "lib/providers/libraries_provider.dart",
+    ],
+    "osd-air-date": ["lib/widgets/video_controls/widgets/video_controls_header.dart", "lib/mpv/player/active_player_type.dart"],
+    "watched-total-count": [
+        "lib/providers/show_watch_counts_provider.dart",
+        "lib/widgets/watched_indicator.dart",
+        "lib/media/leaf_watch_count.dart",
+    ],
+}
 
+TOOLING_PREFIXES = (".agents/", ".claude/")
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
+
 
 def run(cmd):
     res = subprocess.run(cmd, shell=True, text=True, capture_output=True)
     return res.returncode, res.stdout.strip(), res.stderr.strip()
 
-def semver_key(v):
-    return tuple(int(p) for p in v.split("."))
-
-def latest_version(prefix, below=None):
-    # Only semver-suffixed branches; old date-suffixed ones would sort after them lexically.
-    _, out, _ = run(f"git branch --list '{prefix}-*' --format='%(refname:short)'")
-    versions = []
-    for b in out.splitlines():
-        v = b.strip()[len(prefix) + 1:]
-        if SEMVER.match(v) and (below is None or semver_key(v) < semver_key(below)):
-            versions.append(v)
-    return max(versions, key=semver_key) if versions else None
 
 def lines(out):
     return [l for l in out.splitlines() if l.strip()]
+
+
+def semver_key(v):
+    return tuple(int(p) for p in v.split("."))
+
+
+def previous_release(below):
+    _, out, _ = run("git branch --list 'testing-release-*' --format='%(refname:short)'")
+    versions = [b[len("testing-release-"):] for b in lines(out)]
+    versions = [v for v in versions if SEMVER.match(v) and semver_key(v) < semver_key(below)]
+    return max(versions, key=semver_key) if versions else None
+
+
+def label_for(files):
+    scores = {name: len(set(files) & set(keys)) for name, keys in FEATURES.items()}
+    best = max(scores.values())
+    if best == 0:
+        return "loose commit"
+    return " / ".join(name for name, score in scores.items() if score == best)
+
 
 def identity_warning(commit, expected):
     # cherry-pick copies the original author, so a bad email spreads to every new release branch.
     _, emails, _ = run(f"git log -n 1 --format='%ae|%ce' {commit}")
     author, committer = emails.split("|")
     if author == expected and committer == expected:
-        return ""
-    return f"  !! identity <{author}>/<{committer}>, reset with --reset-author"
+        return None
+    return f"identity <{author}>/<{committer}>, reset with --reset-author"
+
 
 def main():
     if len(sys.argv) < 2:
         print("usage: audit_features.py <target-version> [<prev-version>]")
         sys.exit(1)
     target = sys.argv[1]
-    prev = sys.argv[2] if len(sys.argv) > 2 else latest_version("testing-release", below=target)
+    prev = sys.argv[2] if len(sys.argv) > 2 else previous_release(target)
     if not prev:
         print("No previous testing-release-<semver> branch found; pass <prev-version> explicitly.")
         sys.exit(1)
     prev_branch = f"testing-release-{prev}"
-
+    for ref in (target, prev, prev_branch):
+        if run(f"git rev-parse -q --verify '{ref}^{{commit}}'")[0] != 0:
+            print(f"{ref} does not exist; fetch upstream tags first (scripts/sync_main.sh).")
+            sys.exit(1)
     expected_email = run("git config user.email")[1]
 
-    print(f"=== Auditing Plezy custom features: {prev} -> {target} ===")
+    print(f"=== Local commits on {prev_branch}, dry-run onto {target} ===")
 
-    for feat in FEATURE_NAMES:
-        version = latest_version(feat, below=target)
-        if not version:
-            print(f"\n[-] {feat}: no <feature>-<semver> branch found!")
-            continue
-        branch = f"{feat}-{version}"
-        # Feature commits are those on top of the upstream tag the branch was cut from.
-        base = version if run(f"git rev-parse -q --verify refs/tags/{version}")[0] == 0 else "main"
-        commits = lines(run(f"git rev-list --reverse {base}..{branch}")[1])
+    commits = lines(run(f"git rev-list --reverse --topo-order --no-merges {prev}..{prev_branch}")[1])
+    # Chain each clean pick onto a throwaway commit so later picks see earlier ones,
+    # as a real sequential cherry-pick would.
+    _, head, _ = run(f"git rev-parse {target}^{{commit}}")
+    seen_conflict = False
+    found = set()
 
-        print(f"\nFeature: {feat}  ({branch})")
-        if not commits:
-            print(f"  !! NO COMMITS on top of {base}: upstreamed, or lost in a past sync?")
-            print(f"     Find the last branch that has it: git branch --list '{feat}-*' and check each with git log {base}..<branch>")
+    for c in commits:
+        _, summary, _ = run(f"git log -n 1 --format='%h %s' {c}")
+        files = lines(run(f"git diff-tree --no-commit-id --name-only -r {c}")[1])
+        if files and all(f.startswith(TOOLING_PREFIXES) for f in files):
+            print(f"\n  {summary}\n    tooling only, covered by the restore step")
             continue
 
-        for c in commits:
-            summary = run(f"git log -n 1 --format='%h %s' {c}")[1]
-            print(f"  Commit: {summary}{identity_warning(c, expected_email)}")
+        label = label_for(files)
+        found.update(label.split(" / "))
+        print(f"\n  {summary}\n    feature: {label}")
 
-        files = " ".join(lines(run(f"git diff --name-only {base} {branch}")[1]))
-        upstream_touches = lines(run(f"git log {prev}..{target} --oneline -- {files}")[1]) if files else []
-        print(f"  Upstream Activity: {len(upstream_touches)} commit(s) touched related files since {prev}")
-        for line in upstream_touches[:5]:
-            print(f"    * {line}")
-        if len(upstream_touches) > 5:
-            print(f"    * ... and {len(upstream_touches) - 5} more")
+        warning = identity_warning(c, expected_email)
+        if warning:
+            print(f"    !! {warning}")
 
-        # Dry-run cherry-picking the whole feature range onto the target.
-        mt_code, mt_out, _ = run(
-            f"git merge-tree --write-tree --name-only --no-messages --merge-base={base} {target} {branch}")
-        if mt_code == 0:
-            print("  Merge-Tree Status: CLEAN")
+        touches = lines(run(f"git log {prev}..{target} --oneline -- {' '.join(files)}")[1]) if files else []
+        if touches:
+            print(f"    upstream touched these files in {len(touches)} commit(s) since {prev}:")
+            for line in touches[:3]:
+                print(f"      * {line}")
+            if len(touches) > 3:
+                print(f"      * ... and {len(touches) - 3} more")
+
+        code, out, _ = run(f"git merge-tree --write-tree --name-only --no-messages --merge-base={c}^ {head} {c}")
+        if code == 0:
+            _, head, _ = run(f"git commit-tree {out.splitlines()[0]} -p {head} -m audit")
+            print("    pick: CLEAN" + (" (after an earlier conflict, approximate)" if seen_conflict else ""))
         else:
-            print("  Merge-Tree Status: CONFLICT DETECTED")
-            for f in lines(mt_out)[1:11]:
-                print(f"    ! {f}")
+            seen_conflict = True
+            print("    pick: CONFLICT")
+            for f in lines(out)[1:11]:
+                print(f"      ! {f}")
 
-    # Commits made directly on the previous integration branch, outside any feature merge.
-    loose = lines(run(f"git log --reverse --first-parent --no-merges --format='%h %s' {prev}..{prev_branch}")[1])
-    print(f"\n=== Loose commits on {prev_branch} (carry forward unless upstreamed) ===")
-    if not loose:
+    missing = [name for name in FEATURES if name not in found]
+    print("\n=== Portfolio features with no commits ===")
+    if not missing:
         print("  (none)")
-    for line in loose:
-        print(f"  {line}{identity_warning(line.split()[0], expected_email)}")
+    for name in missing:
+        print(f"  !! {name}: upstreamed, or lost in a past sync? Check before treating it as upstreamed.")
+
 
 if __name__ == "__main__":
     main()
