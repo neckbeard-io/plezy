@@ -432,6 +432,7 @@ class MediaCardState extends State<MediaCard> with ContextMenuTapMixin<MediaCard
         SettingsService.showEpisodeNumberOnCards,
         SettingsService.hideSpoilers,
         SettingsService.showUnwatchedCount,
+        SettingsService.showWatchedTotalCount,
         SettingsService.showWatchedIndicators,
       ],
       builder: _buildContent,
@@ -609,7 +610,7 @@ class MediaCardState extends State<MediaCard> with ContextMenuTapMixin<MediaCard
       artworkDim: widget.artworkDim,
     );
     final overlays = <Widget>[
-      if (item is MediaItem && _showsWatchedIndicator(item)) WatchedIndicator(item: item),
+      if (item is MediaItem && _showsWatchedIndicator(item)) WatchedIndicator(item: item, showSeriesCount: true),
       if (badgeLabels.isNotEmpty) _CatalogBadges(labels: badgeLabels),
     ];
     return ExcludeSemantics(
@@ -882,7 +883,7 @@ class _MediaCardList extends StatelessWidget {
                         ),
                       ),
                       if (item is MediaItem && _showsWatchedIndicator(item as MediaItem))
-                        WatchedIndicator(item: item as MediaItem),
+                        WatchedIndicator(item: item as MediaItem, showSeriesCount: true),
                     ],
                   ),
                 ),

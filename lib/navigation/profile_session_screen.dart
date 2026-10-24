@@ -22,6 +22,7 @@ import '../providers/libraries_provider.dart';
 import '../providers/multi_server_provider.dart';
 import '../providers/playback_state_provider.dart';
 import '../providers/seerr_account_provider.dart';
+import '../providers/show_watch_counts_provider.dart';
 import '../providers/trackers_provider.dart';
 import '../providers/watch_state_store.dart';
 import '../database/app_database.dart';
@@ -216,6 +217,13 @@ class _ProfileSessionScreenState extends State<ProfileSessionScreen> {
               Provider(
                 create: (context) => CatalogLibraryMatcher(context.read<MultiServerProvider>()),
                 dispose: (_, matcher) => matcher.dispose(),
+                lazy: true,
+              ),
+              ChangeNotifierProvider(
+                create: (context) => ShowWatchCountsProvider(
+                  fetchShow: (serverId, showId) async =>
+                      context.read<MultiServerProvider>().getClientForServer(serverId)?.fetchItem(showId),
+                ),
                 lazy: true,
               ),
               ChangeNotifierProvider(

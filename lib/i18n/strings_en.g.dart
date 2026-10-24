@@ -661,6 +661,12 @@ class Translations$settings$en {
 	/// en: 'Display unwatched episode count on shows and seasons'
 	String get showUnwatchedCountDescription => 'Display unwatched episode count on shows and seasons';
 
+	/// en: 'Show Watched / Total'
+	String get showWatchedTotalCount => 'Show Watched / Total';
+
+	/// en: 'Show the count as watched / total episodes, including the series count on Continue Watching episodes'
+	String get showWatchedTotalCountDescription => 'Show the count as watched / total episodes, including the series count on Continue Watching episodes';
+
 	/// en: 'Show Watched Indicators'
 	String get showWatchedIndicators => 'Show Watched Indicators';
 
@@ -8274,6 +8280,8 @@ extension on Translations {
 			'settings.alwaysKeepSidebarOpenDescription' => 'Sidebar stays expanded and content area adjusts to fit',
 			'settings.showUnwatchedCount' => 'Show Unwatched Count',
 			'settings.showUnwatchedCountDescription' => 'Display unwatched episode count on shows and seasons',
+			'settings.showWatchedTotalCount' => 'Show Watched / Total',
+			'settings.showWatchedTotalCountDescription' => 'Show the count as watched / total episodes, including the series count on Continue Watching episodes',
 			'settings.showWatchedIndicators' => 'Show Watched Indicators',
 			'settings.showWatchedIndicatorsDescription' => 'Display a checkmark on watched movies, shows, and episodes',
 			'settings.showEpisodeNumberOnCards' => 'Show Episode Number on Cards',
@@ -8568,10 +8576,10 @@ extension on Translations {
 			'themeEditor.editCustomDescription' => 'Choose every color yourself',
 			'themeEditor.locked' => 'Unlock with Supporter',
 			'themeEditor.savedLocked' => 'Saved — unlocks with Supporter',
-			'themeEditor.title' => 'Custom Theme',
-			'themeEditor.startFrom' => 'Start from',
 			_ => null,
 		} ?? switch (path) {
+			'themeEditor.title' => 'Custom Theme',
+			'themeEditor.startFrom' => 'Start from',
 			'themeEditor.startFromDescription' => 'Copy all colors from another theme',
 			'themeEditor.colors' => 'Colors',
 			'themeEditor.preview' => 'Preview',
@@ -9082,10 +9090,10 @@ extension on Translations {
 			'profiles.borrowConnectionBorrowed' => 'Connection borrowed.',
 			'profiles.borrowFailed' => 'Failed to borrow connection.',
 			'profiles.incorrectPin' => 'Incorrect PIN.',
-			'profiles.incorrectPinTryAgain' => 'Incorrect PIN. Please try again.',
-			'profiles.sourceProfileMissingParentAccount' => 'Source profile is missing its parent account.',
 			_ => null,
 		} ?? switch (path) {
+			'profiles.incorrectPinTryAgain' => 'Incorrect PIN. Please try again.',
+			'profiles.sourceProfileMissingParentAccount' => 'Source profile is missing its parent account.',
 			'profiles.failedToLoadHomeUsers' => 'Could not load your Plex Home users. Check your connection and try again.',
 			'profiles.failedToVerifyPin' => 'Failed to verify PIN.',
 			'profiles.newProfile' => 'New profile',
@@ -9596,10 +9604,10 @@ extension on Translations {
 			'liveTv.recordingRuleUpdated' => 'Recording rule updated',
 			'liveTv.guideReloadRequested' => 'Guide refresh requested',
 			'liveTv.guideReloadFailed' => 'Couldn\'t refresh the guide',
-			'liveTv.rulesProcessRequested' => 'Rule re-evaluation requested',
-			'liveTv.rulesProcessFailed' => 'Couldn\'t re-evaluate recording rules',
 			_ => null,
 		} ?? switch (path) {
+			'liveTv.rulesProcessRequested' => 'Rule re-evaluation requested',
+			'liveTv.rulesProcessFailed' => 'Couldn\'t re-evaluate recording rules',
 			'liveTv.recordShow' => 'Record show',
 			'liveTv.recordSettings.startEarly' => 'Start early (seconds)',
 			'liveTv.recordSettings.endLate' => 'End late (seconds)',
@@ -10110,10 +10118,10 @@ extension on Translations {
 			'performanceOverlay.maxFall' => 'MaxFALL',
 			'performanceOverlay.cacheUsed' => 'Cache Used',
 			'performanceOverlay.cacheLimit' => 'Cache Limit',
-			'performanceOverlay.speed' => 'Speed',
-			'performanceOverlay.player' => 'Player',
 			_ => null,
 		} ?? switch (path) {
+			'performanceOverlay.speed' => 'Speed',
+			'performanceOverlay.player' => 'Player',
 			'performanceOverlay.memory' => 'Memory',
 			'performanceOverlay.uiFps' => 'UI FPS',
 			'performanceOverlay.fps' => 'FPS',
