@@ -7,6 +7,8 @@ import '../../focus/focusable_action_bar.dart';
 import '../../media/library_query.dart';
 import '../../media/media_item.dart';
 import '../../media/media_playlist.dart';
+import '../../providers/watch_state_store.dart';
+import '../../services/jellyfin_sequential_launcher.dart';
 import '../../services/media_list_playback_launcher.dart';
 import '../../services/playlist_items_loader.dart';
 import '../../utils/app_logger.dart';
@@ -74,7 +76,41 @@ class _PlaylistDetailScreenState extends BaseMediaListDetailScreen<PlaylistDetai
   bool get _isAudioPlaylist => widget.playlist.playlistType == 'audio';
 
   @override
-  Future<void> playItems() => _isAudioPlaylist ? _playAudioPlaylist(shuffle: false) : super.playItems();
+  Future<void> playItems() => _isAudioPlaylist ? _playAudioPlaylist(shuffle: false) : _playVideoPlaylistResuming();
+
+  /// Play picks up where the viewer left off: the first item that is partially
+  /// watched, else the first unwatched one. Everything watched falls back to
+  /// the top. "Play from beginning" is the separate app-bar action.
+  Future<void> _playVideoPlaylistResuming() async {
+    if (items.isEmpty) {
+      if (mounted) showAppSnackBar(context, emptyMessage);
+      return;
+    }
+    final launcher = MediaListPlaybackLauncher.forItem(context, mediaItem);
+    await launcher.launchFromCollectionOrPlaylist(
+      item: mediaItem,
+      shuffle: false,
+      startItem: _findResumeItem(),
+      showLoadingIndicator: launcher is JellyfinSequentialLauncher,
+    );
+  }
+
+  /// Play the whole playlist from the top, ignoring watch state.
+  Future<void> _playFromBeginning() =>
+      _isAudioPlaylist ? _playAudioPlaylist(shuffle: false) : super.playItems();
+
+  /// First partially-watched item, else first unwatched, else null. Reads
+  /// through the watch-state store so items marked during this session count.
+  MediaItem? _findResumeItem() {
+    for (final item in items) {
+      // readFreshWatchState, not withFreshWatchState: this runs from a handler,
+      // and `select` is only legal during build.
+      final effective = context.readFreshWatchState(item);
+      if (effective.hasActiveProgress) return effective;
+      if (!effective.isWatched) return effective;
+    }
+    return null;
+  }
 
   @override
   Future<void> shufflePlayItems() => _isAudioPlaylist ? _playAudioPlaylist(shuffle: true) : super.shufflePlayItems();
@@ -112,6 +148,13 @@ class _PlaylistDetailScreenState extends BaseMediaListDetailScreen<PlaylistDetai
     return [
       if (items.isNotEmpty) ...[
         FocusableAction(icon: Symbols.play_arrow_rounded, tooltip: t.common.play, onPressed: playItems),
+        // Play resumes at the first unfinished item, so keep an explicit way
+        // back to the top of the playlist.
+        FocusableAction(
+          icon: Symbols.replay_rounded,
+          tooltip: t.playlists.playFromBeginning,
+          onPressed: _playFromBeginning,
+        ),
         FocusableAction(icon: Symbols.shuffle_rounded, tooltip: t.common.shuffle, onPressed: shufflePlayItems),
       ],
       ...buildSyncRuleActions(
@@ -478,8 +521,10 @@ class _PlaylistDetailScreenState extends BaseMediaListDetailScreen<PlaylistDetai
         backHandledByKeyEvent = true;
         _cancelMoveMode();
       } else {
-        // Navigate to the app bar and suppress route-level back handling.
-        handleBackFromContent();
+        // Leave the playlist outright. Routing Back to the app bar first makes
+        // the list a two-press exit, which nobody expects from a flat list.
+        backHandledByKeyEvent = true;
+        if (mounted) Navigator.pop(context);
       }
     });
     if (backResult != KeyEventResult.ignored) {

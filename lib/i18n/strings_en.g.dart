@@ -4262,6 +4262,9 @@ class Translations$playlists$en {
 	/// en: 'Remove from Playlist'
 	String get removeItem => 'Remove from Playlist';
 
+	/// en: 'Play from Beginning'
+	String get playFromBeginning => 'Play from Beginning';
+
 	/// en: 'Smart Playlist'
 	String get smartPlaylist => 'Smart Playlist';
 
@@ -9641,6 +9644,7 @@ extension on Translations {
 			'playlists.enterPlaylistName' => 'Enter playlist name',
 			'playlists.delete' => 'Delete Playlist',
 			'playlists.removeItem' => 'Remove from Playlist',
+			'playlists.playFromBeginning' => 'Play from Beginning',
 			'playlists.smartPlaylist' => 'Smart Playlist',
 			'playlists.itemCount' => ({required Object count}) => '${count} items',
 			'playlists.oneItem' => '1 item',
@@ -10108,9 +10112,9 @@ extension on Translations {
 			'performanceOverlay.cacheLimit' => 'Cache Limit',
 			'performanceOverlay.speed' => 'Speed',
 			'performanceOverlay.player' => 'Player',
-			'performanceOverlay.memory' => 'Memory',
 			_ => null,
 		} ?? switch (path) {
+			'performanceOverlay.memory' => 'Memory',
 			'performanceOverlay.uiFps' => 'UI FPS',
 			'performanceOverlay.fps' => 'FPS',
 			'performanceOverlay.decoderAndroidHw' => 'Android HW',
