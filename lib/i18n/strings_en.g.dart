@@ -2011,6 +2011,9 @@ class Translations$mediaMenu$en {
 	/// en: 'Go to series'
 	String get goToSeries => 'Go to series';
 
+	/// en: 'Go to season'
+	String get goToSeason => 'Go to season';
+
 	/// en: 'Shuffle Play'
 	String get shufflePlay => 'Shuffle Play';
 
@@ -2597,6 +2600,9 @@ class Translations$messages$en {
 
 	/// en: 'Error loading series'
 	String get errorLoadingSeries => 'Error loading series';
+
+	/// en: 'Error loading season'
+	String get errorLoadingSeason => 'Error loading season';
 
 	/// en: 'Music playback is not yet supported'
 	String get musicNotSupported => 'Music playback is not yet supported';
@@ -8711,6 +8717,7 @@ extension on Translations {
 			'mediaMenu.removeFromContinueWatching' => 'Remove from Continue Watching',
 			'mediaMenu.viewDetails' => 'View details',
 			'mediaMenu.goToSeries' => 'Go to series',
+			'mediaMenu.goToSeason' => 'Go to season',
 			'mediaMenu.shufflePlay' => 'Shuffle Play',
 			'mediaMenu.shuffleNotAvailableOffline' => 'Shuffle not available offline',
 			'mediaMenu.fileInfo' => 'File Info',
@@ -8892,6 +8899,7 @@ extension on Translations {
 			'messages.mediaUnavailable' => 'This content is no longer available.',
 			'messages.errorLoadingFileInfo' => ({required Object error}) => 'Error loading file info: ${error}',
 			'messages.errorLoadingSeries' => 'Error loading series',
+			'messages.errorLoadingSeason' => 'Error loading season',
 			'messages.musicNotSupported' => 'Music playback is not yet supported',
 			'messages.noDescriptionAvailable' => 'No description available',
 			'messages.noProfilesAvailable' => 'No profiles available',
@@ -9046,10 +9054,10 @@ extension on Translations {
 			'profiles.continueButton' => 'Continue',
 			'profiles.pinsDontMatch' => 'PINs don\'t match',
 			'profiles.tokenIdentityMismatch' => 'The Plex profile token resolved to an unexpected server',
-			'connections.sectionTitle' => 'Connections',
-			'connections.addConnection' => 'Add connection',
 			_ => null,
 		} ?? switch (path) {
+			'connections.sectionTitle' => 'Connections',
+			'connections.addConnection' => 'Add connection',
 			'connections.addConnectionSubtitleNoProfile' => 'Sign in with Plex or connect a Jellyfin or Emby server',
 			'connections.addConnectionSubtitleScoped' => ({required Object displayName}) => 'Add to ${displayName}: Plex, Jellyfin, Emby, or another profile connection',
 			'connections.sessionExpiredOne' => ({required Object name}) => 'Session expired for ${name}',
@@ -9560,10 +9568,10 @@ extension on Translations {
 			'liveTv.recordSettings.skipInLibrary' => 'Skip episodes already in the library',
 			'liveTv.recordSettings.keepUpTo' => 'Episodes to keep',
 			'liveTv.recordSettings.keepUpToHint' => '0 keeps every episode',
-			'liveTv.startingInMinutes' => ({required Object minutes}) => 'Starting in ${minutes} min',
-			'liveTv.dayAtTime' => ({required Object day, required Object time}) => '${day} at ${time}',
 			_ => null,
 		} ?? switch (path) {
+			'liveTv.startingInMinutes' => ({required Object minutes}) => 'Starting in ${minutes} min',
+			'liveTv.dayAtTime' => ({required Object day, required Object time}) => '${day} at ${time}',
 			'liveTv.invalidPlaybackData' => ({required Object product}) => '${product} returned invalid Live TV playback data',
 			'liveTv.failedToStartChannel' => 'Could not start the live channel',
 			'liveTv.failedToBuildStreamUrl' => 'Could not build the stream URL',
@@ -10074,10 +10082,10 @@ extension on Translations {
 			'performanceOverlay.decoderExynosHw' => 'Exynos HW',
 			'performanceOverlay.decoderSoftware' => 'Software',
 			'performanceOverlay.decoderHardware' => 'Hardware',
-			'performanceOverlay.tunnelingActive' => 'Active',
-			'performanceOverlay.dvRpuFailed' => ({required Object converted, required Object failures}) => '${converted} (${failures} failed)',
 			_ => null,
 		} ?? switch (path) {
+			'performanceOverlay.tunnelingActive' => 'Active',
+			'performanceOverlay.dvRpuFailed' => ({required Object converted, required Object failures}) => '${converted} (${failures} failed)',
 			'externalPlayer.title' => 'External Player',
 			'externalPlayer.useExternalPlayer' => 'Use External Player',
 			'externalPlayer.useExternalPlayerDescription' => 'Open videos in another app',
