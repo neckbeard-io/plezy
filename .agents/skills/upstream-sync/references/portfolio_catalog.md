@@ -13,7 +13,7 @@ Every feature lives as one or more plain commits on `testing-release-<version>`;
 * **Audit Check against Upstream**:
   - Check if upstream changed ExoPlayer seek dispatch or added transient event suppression.
 * **Commit History Reference**:
-  - `c25b471f` on `testing-release-2.23.0`
+  - `a2f753af` on `testing-release-2.24.0`
 
 ---
 
@@ -24,7 +24,7 @@ Every feature lives as one or more plain commits on `testing-release-<version>`;
 * **Audit Check against Upstream**:
   - Check if upstream altered image caching URI construction or made image keys server-agnostic.
 * **Commit History Reference**:
-  - `4ee8a759` on `testing-release-2.23.0`
+  - `f5c78a66` on `testing-release-2.24.0`
 
 ---
 
@@ -34,8 +34,9 @@ Every feature lives as one or more plain commits on `testing-release-<version>`;
   - `lib/screens/media_detail_screen.dart`
 * **Audit Check against Upstream**:
   - Check if upstream added episode guest star / crew display to the detail screen.
+  - Since 2.24.0 upstream caches `_tvDetailActorItems` by metadata identity; ours keys that cache on the role list too, so the cast follows the focused episode.
 * **Commit History Reference**:
-  - `f134ba1b` on `testing-release-2.23.0`
+  - `fd3144a4` on `testing-release-2.24.0`
 
 ---
 
@@ -47,7 +48,7 @@ Every feature lives as one or more plain commits on `testing-release-<version>`;
 * **Audit Check against Upstream**:
   - Check upstream commits touching `discover_provider.dart` for watch state invalidation or local watch patch settling.
 * **Commit History Reference**:
-  - `ba9f7f2d` on `testing-release-2.23.0`
+  - `055c2a67` on `testing-release-2.24.0`
 
 ---
 
@@ -58,7 +59,7 @@ Every feature lives as one or more plain commits on `testing-release-<version>`;
 * **Audit Check against Upstream**:
   - Check upstream changes to "Play Next" / auto-advance dialog cancellation and player exit handling.
 * **Commit History Reference**:
-  - `07203ccb` on `testing-release-2.23.0`
+  - `89caa3f0` on `testing-release-2.24.0`
 
 ---
 
@@ -69,7 +70,7 @@ Every feature lives as one or more plain commits on `testing-release-<version>`;
 * **Audit Check against Upstream**:
   - Check if upstream implemented "Go to Season" / "Go to Series" menu actions.
 * **Commit History Reference**:
-  - `85e41693` on `testing-release-2.23.0`
+  - `ca3eab25` on `testing-release-2.24.0`
 
 ---
 
@@ -85,7 +86,7 @@ Every feature lives as one or more plain commits on `testing-release-<version>`;
 * **Audit Check against Upstream**:
   - Check upstream commits touching `key_events.dart`, `visibility.dart`, and `player_chrome_controller.dart` (e.g. key event classification refactors).
 * **Commit History Reference**:
-  - `ef37603e` on `testing-release-2.23.0`
+  - `8ea30885` on `testing-release-2.24.0`
 
 ---
 
@@ -98,7 +99,7 @@ Every feature lives as one or more plain commits on `testing-release-<version>`;
 * **Audit Check against Upstream**:
   - Check upstream skip marker behavior (e.g. per-marker skip modes, dismiss on Back). Ensure `suppressSkipReappearance` and D-pad navigation down to the timeline are preserved.
 * **Commit History Reference**:
-  - `63434e8b` on `testing-release-2.23.0`
+  - `a454fae5` on `testing-release-2.24.0`
 
 ---
 
@@ -109,7 +110,7 @@ Every feature lives as one or more plain commits on `testing-release-<version>`;
 * **Audit Check against Upstream**:
   - Check if upstream added playlist resume or changed playlist Back handling.
 * **Commit History Reference**:
-  - `2b756c7a` on `testing-release-2.23.0`, restored after being dropped in the 2.22.0 sync
+  - `88dea2ae` on `testing-release-2.24.0`, restored after being dropped in the 2.22.0 sync
 
 ---
 
@@ -122,7 +123,7 @@ Every feature lives as one or more plain commits on `testing-release-<version>`;
 * **Audit Check against Upstream**:
   - Check upstream settings and library providers for any server visibility/hiding features.
 * **Commit History Reference**:
-  - `7cf14f20` on `testing-release-2.23.0`
+  - `92a5e749` on `testing-release-2.24.0`
 
 ---
 
@@ -136,7 +137,7 @@ Every feature lives as one or more plain commits on `testing-release-<version>`;
 * **Audit Check against Upstream**:
   - Check if upstream added a date, year or player name to the player header, restructured `_buildMultiLineTitle` / `_buildSingleLineTitle`, or changed how `PlayerAndroid` reports its mpv fallback (`usingMpvFallback`, `backendSwitched`).
 * **Commit History Reference**:
-  - `1a70f07c` on `testing-release-2.23.0`
+  - `debdadc1` on `testing-release-2.24.0`
 
 ---
 
@@ -153,4 +154,4 @@ Every feature lives as one or more plain commits on `testing-release-<version>`;
 * **Audit Check against Upstream**:
   - Check if upstream added a watched/total format or series counts on episode cards, or reworked `WatchedIndicator` / `UnwatchedCountBadge`.
 * **Commit History Reference**:
-  - `c99b5d28` on `testing-release-2.23.0`
+  - `b8400125` on `testing-release-2.24.0`
