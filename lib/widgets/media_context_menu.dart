@@ -678,9 +678,12 @@ class MediaContextMenuState extends State<MediaContextMenu> {
         ),
       if ((mediaKind == MediaKind.episode || mediaKind == MediaKind.season) &&
           itemSeriesKey != null &&
-          !widget.isInContinueWatching &&
           ancestorSeriesKey != itemSeriesKey)
         _MenuAction(value: 'series', icon: Symbols.tv_rounded, label: t.mediaMenu.goToSeries),
+      if (mediaKind == MediaKind.episode &&
+          mediaItem.parentId != null &&
+          (ancestorMeta?.kind != MediaKind.season || ancestorMeta?.id != mediaItem.parentId))
+        _MenuAction(value: 'season', icon: Symbols.folder_rounded, label: t.mediaMenu.goToSeason),
       if (mediaKind == MediaKind.show || mediaKind == MediaKind.season)
         _MenuAction(value: 'shuffle_play', icon: Symbols.shuffle_rounded, label: t.mediaMenu.shufflePlay),
       if (canLinkItem(mediaItem))
@@ -930,6 +933,10 @@ class MediaContextMenuState extends State<MediaContextMenu> {
         outcome.didNavigate = true;
         await _navigateToSeries(context, mediaItem);
         break;
+      case 'season':
+        outcome.didNavigate = true;
+        await _navigateToSeason(context, mediaItem);
+        break;
       case 'shuffle_play':
         await _handleShufflePlayWithQueue(context);
         break;
@@ -1076,6 +1083,16 @@ class MediaContextMenuState extends State<MediaContextMenu> {
       );
     },
     t.messages.errorLoadingSeries,
+  );
+
+  /// Open the season an episode belongs to.
+  Future<void> _navigateToSeason(BuildContext context, MediaItem item) => _navigateToRelated(
+    context,
+    item.parentId,
+    (context, season) async {
+      await Navigator.push(context, mediaDetailRoute(metadata: season, initialEpisodeId: item.id));
+    },
+    t.messages.errorLoadingSeason,
   );
 
   List<AppMenuEntry<String>> _menuEntries(List<_MenuAction> actions) {
