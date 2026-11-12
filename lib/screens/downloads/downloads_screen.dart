@@ -16,6 +16,7 @@ import '../../utils/music_navigation.dart';
 import '../../models/download_models.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/background_download_warning_banner.dart';
+import '../../widgets/download_queue_summary_card.dart';
 import '../../widgets/focusable_tab_chip.dart';
 import '../../widgets/music/mini_player.dart';
 import '../../widgets/music/track_row.dart';
@@ -240,6 +241,7 @@ class DownloadsScreenState extends State<DownloadsScreen>
                     builder: (context, hasPendingDownloads, _) =>
                         BackgroundDownloadWarningBanner(hasPendingDownloads: hasPendingDownloads),
                   ),
+                  const DownloadQueueSummaryCard(),
                   if (!PlatformDetector.shouldUseSideNavigation(context))
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

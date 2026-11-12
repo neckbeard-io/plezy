@@ -64,6 +64,7 @@ import 'providers/multi_server_provider.dart';
 import 'providers/theme_provider.dart';
 import 'services/supporter/supporter_service.dart';
 import 'providers/download_provider.dart';
+import 'providers/download_queue_tracker.dart';
 import 'providers/offline_mode_provider.dart';
 import 'providers/offline_watch_provider.dart';
 import 'providers/shader_provider.dart';
@@ -1821,7 +1822,8 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
         // Download provider. Downloads are shared, but sync rules are scoped to
         // the active profile and reload when the profile changes.
         ChangeNotifierProxyProvider<ActiveProfileProvider, DownloadProvider>(
-          create: (context) => DownloadProvider(downloadManager: _downloadManager, database: _appDatabase),
+          create: (context) =>
+              DownloadQueueTracker.attach(DownloadProvider(downloadManager: _downloadManager, database: _appDatabase)),
           update: (context, activeProfile, previous) {
             final provider = previous!;
             provider.setActiveProfileId(activeProfile.activeId);

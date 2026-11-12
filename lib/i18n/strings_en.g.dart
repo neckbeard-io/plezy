@@ -5076,6 +5076,39 @@ class Translations$downloads$en {
 
 	/// en: 'Download paused'
 	String get notificationPaused => 'Download paused';
+
+	/// en: '${finished} of ${total} downloaded · ${speed}'
+	String notificationQueueRunningTitle({required Object finished, required Object total, required Object speed}) => '${finished} of ${total} downloaded · ${speed}';
+
+	/// en: '${name} · ${progress} · ${remaining} left'
+	String notificationQueueRunningBody({required Object name, required Object progress, required Object remaining}) => '${name} · ${progress} · ${remaining} left';
+
+	/// en: 'Downloads complete'
+	String get notificationQueueCompleteTitle => 'Downloads complete';
+
+	/// en: '${count} downloaded'
+	String notificationQueueCompleteBody({required Object count}) => '${count} downloaded';
+
+	/// en: 'Some downloads failed'
+	String get notificationQueueErrorTitle => 'Some downloads failed';
+
+	/// en: '${failed} of ${total} failed'
+	String notificationQueueErrorBody({required Object failed, required Object total}) => '${failed} of ${total} failed';
+
+	/// en: '${done} of ${total} downloaded'
+	String queueSummaryCount({required Object done, required Object total}) => '${done} of ${total} downloaded';
+
+	/// en: '${downloaded} of ${total}'
+	String queueSummaryBytes({required Object downloaded, required Object total}) => '${downloaded} of ${total}';
+
+	/// en: 'About ${time} left'
+	String queueSummaryTimeLeft({required Object time}) => 'About ${time} left';
+
+	/// en: 'Estimating time left…'
+	String get queueSummaryEstimating => 'Estimating time left…';
+
+	/// en: 'Waiting to start'
+	String get queueSummaryWaiting => 'Waiting to start';
 }
 
 // Path: shaders
@@ -10082,6 +10115,17 @@ extension on Translations {
 			'downloads.notificationDownloading' => 'Downloading...',
 			'downloads.notificationComplete' => 'Download complete',
 			'downloads.notificationPaused' => 'Download paused',
+			'downloads.notificationQueueRunningTitle' => ({required Object finished, required Object total, required Object speed}) => '${finished} of ${total} downloaded · ${speed}',
+			'downloads.notificationQueueRunningBody' => ({required Object name, required Object progress, required Object remaining}) => '${name} · ${progress} · ${remaining} left',
+			'downloads.notificationQueueCompleteTitle' => 'Downloads complete',
+			'downloads.notificationQueueCompleteBody' => ({required Object count}) => '${count} downloaded',
+			'downloads.notificationQueueErrorTitle' => 'Some downloads failed',
+			'downloads.notificationQueueErrorBody' => ({required Object failed, required Object total}) => '${failed} of ${total} failed',
+			'downloads.queueSummaryCount' => ({required Object done, required Object total}) => '${done} of ${total} downloaded',
+			'downloads.queueSummaryBytes' => ({required Object downloaded, required Object total}) => '${downloaded} of ${total}',
+			'downloads.queueSummaryTimeLeft' => ({required Object time}) => 'About ${time} left',
+			'downloads.queueSummaryEstimating' => 'Estimating time left…',
+			'downloads.queueSummaryWaiting' => 'Waiting to start',
 			'shaders.title' => 'Shaders',
 			'shaders.noShaderDescription' => 'No video enhancement',
 			'shaders.nvscalerDescription' => 'NVIDIA image scaling for sharper video',
@@ -10204,6 +10248,8 @@ extension on Translations {
 			'performanceOverlay.dvRouteBaseLayer' => 'Base layer',
 			'performanceOverlay.dvRouteBaseLayerHdr10' => 'HDR10 base layer',
 			'performanceOverlay.dvRouteBaseLayerHlg' => 'HLG base layer',
+			_ => null,
+		} ?? switch (path) {
 			'performanceOverlay.dvRouteBaseLayerSdr' => 'SDR base layer',
 			'performanceOverlay.dvRouteReshaped' => 'RPU reshaped (gpu-next)',
 			'performanceOverlay.p7Conversion' => 'P7 Conv',
@@ -10215,8 +10261,6 @@ extension on Translations {
 			'performanceOverlay.transfer' => 'Transfer',
 			'performanceOverlay.renderFps' => 'Render FPS',
 			'performanceOverlay.displayFps' => 'Display FPS',
-			_ => null,
-		} ?? switch (path) {
 			'performanceOverlay.avSync' => 'A/V Sync',
 			'performanceOverlay.dropped' => 'Dropped',
 			'performanceOverlay.dvRpus' => 'DV RPUs',

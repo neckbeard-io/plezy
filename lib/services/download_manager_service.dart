@@ -11,6 +11,7 @@ import 'package:plezy/utils/media_server_http_client.dart';
 import '../exceptions/media_server_exceptions.dart';
 import '../database/app_database.dart';
 import '../database/download_operations.dart';
+import '../media/download_queue_summary.dart';
 import '../media/download_resolution.dart';
 import '../media/media_backend.dart';
 import '../media/media_item.dart';
@@ -198,6 +199,12 @@ class DownloadManagerService {
   static const _downloadGroup = 'video_downloads';
   static const _maxAppRetries = 3;
   static const _nativeRetries = 5;
+
+  /// Native priority of a media download. 0 is what makes Android 14+ run it
+  /// as a user-initiated data transfer job: it keeps going with the screen
+  /// off, past WorkManager's 9-minute window and its quotas. The default (5)
+  /// elsewhere.
+  static int get _nativeTaskPriority => Platform.isAndroid ? 0 : 5;
   static const _defaultAutoRetryDelay = Duration(seconds: 30);
   static const _progressDebounceDelay = Duration(seconds: 2);
   static const _videoExtensions = {'.mp4', '.ogv', '.mkv', '.m4v', '.avi'};
@@ -930,17 +937,47 @@ class DownloadManagerService {
         )
         .configureNotificationForGroup(
           _downloadGroup,
-          running: TaskNotification('{displayName}', t.downloads.notificationDownloading),
-          complete: TaskNotification('{displayName}', t.downloads.notificationComplete),
-          error: TaskNotification('{displayName}', t.downloads.errorDownloadFailed),
+          running: Platform.isAndroid
+              ? TaskNotification(
+                  t.downloads.notificationQueueRunningTitle(
+                    finished: '{numFinished}',
+                    total: '{numTotal}',
+                    speed: '{networkSpeed}',
+                  ),
+                  t.downloads.notificationQueueRunningBody(
+                    name: '{displayName}',
+                    progress: '{taskProgress}',
+                    remaining: '{timeRemaining}',
+                  ),
+                )
+              : TaskNotification('{displayName}', t.downloads.notificationDownloading),
+          complete: Platform.isAndroid
+              ? TaskNotification(
+                  t.downloads.notificationQueueCompleteTitle,
+                  t.downloads.notificationQueueCompleteBody(count: '{numFinished}'),
+                )
+              : TaskNotification('{displayName}', t.downloads.notificationComplete),
+          error: Platform.isAndroid
+              ? TaskNotification(
+                  t.downloads.notificationQueueErrorTitle,
+                  t.downloads.notificationQueueErrorBody(failed: '{numFailed}', total: '{numTotal}'),
+                )
+              : TaskNotification('{displayName}', t.downloads.errorDownloadFailed),
           paused: TaskNotification('{displayName}', t.downloads.notificationPaused),
           progressBar: true,
+          // Android: one notification for the whole queue, following the
+          // running download's name, speed and time left, instead of one per
+          // item that piles up a "complete" notification for every episode.
+          groupNotificationId: Platform.isAndroid ? _downloadGroup : '',
         );
 
     // Protect native writes even while Flutter is suspended. Plex servers can
     // also reject concurrent media downloads.
     await FileDownloader().configure(
       globalConfig: [(Config.checkAvailableSpace, true), (Config.holdingQueue, (1, 1, 1))],
+      // Run every Android download as a foreground job: a background job is
+      // deferred as soon as the screen sleeps.
+      androidConfig: [(Config.runInForeground, Config.always)],
     );
     // Bring the downloader's persisted policy in line with the setting (it
     // may have been changed, e.g. by a settings import, while not running).
@@ -2262,7 +2299,7 @@ class DownloadManagerService {
     // tracks with the artist — same "container - leaf" pattern.
     final trackArtist = metadata.trackArtistTitle;
     final displayName = metadata.isEpisode
-        ? '${metadata.grandparentTitle ?? metadata.displayTitle} - ${metadata.displayTitle}'
+        ? downloadQueueLabel(metadata)
         : metadata.kind == MediaKind.track && trackArtist != null && trackArtist.isNotEmpty
         ? '$trackArtist - ${metadata.displayTitle}'
         : metadata.displayTitle;
@@ -2308,6 +2345,7 @@ class DownloadManagerService {
           requiresWiFi: requiresWiFi,
           retries: _nativeRetries,
           allowPause: true,
+          priority: _nativeTaskPriority,
           metaData: globalKey,
           displayName: displayName,
         );
@@ -2353,6 +2391,7 @@ class DownloadManagerService {
           requiresWiFi: requiresWiFi,
           retries: _nativeRetries,
           allowPause: true,
+          priority: _nativeTaskPriority,
           metaData: globalKey,
           displayName: displayName,
         );

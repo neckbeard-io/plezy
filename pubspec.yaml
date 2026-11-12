@@ -74,10 +74,13 @@ dependencies:
   # samples desktop free space once per 1 MiB instead of per received event
   # (#2967). Keep the same-filesystem move/resume cleanup; no per-host TLS
   # bypass.
+  # Pinned here to neckbeard-io's branch plezy-download-queue: afa3fe6 plus
+  # e323479, live progress of the active task in group notifications and a
+  # Wi-Fi lock while a transfer runs. Rebase that branch onto each new pin.
   background_downloader:
     git:
-      url: https://github.com/edde746/background_downloader
-      ref: afa3fe68080327cfa87e725a38961bf5d2e35307
+      url: https://github.com/neckbeard-io/background_downloader
+      ref: e323479bbdb70b3cb8cbd1a925be4145933167b6
   sentry_flutter: ^9.30.0
   auto_updater:
     git:

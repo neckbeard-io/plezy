@@ -2107,7 +2107,18 @@
     "reasonDeviceStorageFull": "this device is out of storage",
     "notificationDownloading": "Downloading...",
     "notificationComplete": "Download complete",
-    "notificationPaused": "Download paused"
+    "notificationPaused": "Download paused",
+    "notificationQueueRunningTitle": "${finished} of ${total} downloaded · ${speed}",
+    "notificationQueueRunningBody": "${name} · ${progress} · ${remaining} left",
+    "notificationQueueCompleteTitle": "Downloads complete",
+    "notificationQueueCompleteBody": "${count} downloaded",
+    "notificationQueueErrorTitle": "Some downloads failed",
+    "notificationQueueErrorBody": "${failed} of ${total} failed",
+    "queueSummaryCount": "${done} of ${total} downloaded",
+    "queueSummaryBytes": "${downloaded} of ${total}",
+    "queueSummaryTimeLeft": "About ${time} left",
+    "queueSummaryEstimating": "Estimating time left…",
+    "queueSummaryWaiting": "Waiting to start"
   },
   "shaders": {
     "title": "Shaders",
