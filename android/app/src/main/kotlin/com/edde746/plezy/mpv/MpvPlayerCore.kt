@@ -1150,6 +1150,14 @@ class MpvPlayerCore private constructor(
                   if (displayFpsOverride != null) {
                     setOption("display-fps-override", displayFpsOverride)
                   }
+                  // mpv's default (weak) keeps the AudioTrack across an
+                  // in-place loadfile when the output format matches, so the
+                  // next episode inherits the finished one's paused, flushed
+                  // track — passthrough timestamps from it leave A/V sync far
+                  // off and video stuttering, and seeks only reset, never
+                  // reopen, it. Video never splices entries, so every file
+                  // opens its own track, as a fresh player would.
+                  setOption("gapless-audio", "no")
                 }
                 if (demuxerBudget != null) {
                   demuxerBudgetWrites(demuxerBudget) { name, value -> setOption(name, value) }
