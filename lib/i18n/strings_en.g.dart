@@ -662,6 +662,12 @@ class Translations$settings$en {
 	/// en: 'Display unwatched episode count on shows and seasons'
 	String get showUnwatchedCountDescription => 'Display unwatched episode count on shows and seasons';
 
+	/// en: 'Show Watched / Total'
+	String get showWatchedTotalCount => 'Show Watched / Total';
+
+	/// en: 'Show the count as watched / total episodes, including the series count on Continue Watching episodes'
+	String get showWatchedTotalCountDescription => 'Show the count as watched / total episodes, including the series count on Continue Watching episodes';
+
 	/// en: 'Show Watched Indicators'
 	String get showWatchedIndicators => 'Show Watched Indicators';
 
@@ -8371,6 +8377,8 @@ extension on Translations {
 			'settings.alwaysKeepSidebarOpenDescription' => 'Sidebar stays expanded and content area adjusts to fit',
 			'settings.showUnwatchedCount' => 'Show Unwatched Count',
 			'settings.showUnwatchedCountDescription' => 'Display unwatched episode count on shows and seasons',
+			'settings.showWatchedTotalCount' => 'Show Watched / Total',
+			'settings.showWatchedTotalCountDescription' => 'Show the count as watched / total episodes, including the series count on Continue Watching episodes',
 			'settings.showWatchedIndicators' => 'Show Watched Indicators',
 			'settings.showWatchedIndicatorsDescription' => 'Display a checkmark on watched movies, shows, and episodes',
 			'settings.showEpisodeNumberOnCards' => 'Show Episode Number on Cards',
@@ -8665,10 +8673,10 @@ extension on Translations {
 			'themeEditor.editCustom' => 'Edit custom theme',
 			'themeEditor.editCustomDescription' => 'Choose every color yourself',
 			'themeEditor.locked' => 'Unlock with the Theme & Icon Pack',
-			'themeEditor.savedLocked' => 'Saved — unlocks with the Theme & Icon Pack',
-			'themeEditor.title' => 'Custom Theme',
 			_ => null,
 		} ?? switch (path) {
+			'themeEditor.savedLocked' => 'Saved — unlocks with the Theme & Icon Pack',
+			'themeEditor.title' => 'Custom Theme',
 			'themeEditor.startFrom' => 'Start from',
 			'themeEditor.startFromDescription' => 'Copy all colors from another theme',
 			'themeEditor.colors' => 'Colors',
@@ -9179,10 +9187,10 @@ extension on Translations {
 			'profiles.borrowEmpty' => 'Nothing to borrow yet.',
 			'profiles.borrowEmptySubtitle' => 'Connect Plex, Jellyfin, or Emby to another profile first.',
 			'profiles.borrowLoadFailed' => 'Available connections could not be loaded. Try again.',
-			'profiles.borrowFromProfile' => ({required Object displayName}) => 'From ${displayName}',
-			'profiles.borrowConnectionBorrowed' => 'Connection borrowed.',
 			_ => null,
 		} ?? switch (path) {
+			'profiles.borrowFromProfile' => ({required Object displayName}) => 'From ${displayName}',
+			'profiles.borrowConnectionBorrowed' => 'Connection borrowed.',
 			'profiles.borrowFailed' => 'Failed to borrow connection.',
 			'profiles.incorrectPin' => 'Incorrect PIN.',
 			'profiles.incorrectPinTryAgain' => 'Incorrect PIN. Please try again.',
@@ -9693,10 +9701,10 @@ extension on Translations {
 			'liveTv.dvrAdminRequired' => 'DVR settings require an admin account',
 			'liveTv.recordingFailed' => 'Couldn\'t schedule recording',
 			'liveTv.recordingTargetMissing' => 'Couldn\'t determine recording library',
-			'liveTv.recordNotAvailable' => 'Recording not available for this program',
-			'liveTv.recordingCancelled' => 'Recording canceled',
 			_ => null,
 		} ?? switch (path) {
+			'liveTv.recordNotAvailable' => 'Recording not available for this program',
+			'liveTv.recordingCancelled' => 'Recording canceled',
 			'liveTv.recordingRuleDeleted' => 'Recording rule deleted',
 			'liveTv.processRecordingRules' => 'Re-evaluate rules',
 			'liveTv.recordingInProgress' => 'Recording now',
@@ -10207,10 +10215,10 @@ extension on Translations {
 			'performanceOverlay.transfer' => 'Transfer',
 			'performanceOverlay.renderFps' => 'Render FPS',
 			'performanceOverlay.displayFps' => 'Display FPS',
-			'performanceOverlay.avSync' => 'A/V Sync',
-			'performanceOverlay.dropped' => 'Dropped',
 			_ => null,
 		} ?? switch (path) {
+			'performanceOverlay.avSync' => 'A/V Sync',
+			'performanceOverlay.dropped' => 'Dropped',
 			'performanceOverlay.dvRpus' => 'DV RPUs',
 			'performanceOverlay.dvRpuAverage' => 'DV RPU Avg',
 			'performanceOverlay.dvSampleAverage' => 'DV Sample Avg',

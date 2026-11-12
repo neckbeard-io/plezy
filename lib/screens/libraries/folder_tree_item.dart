@@ -392,6 +392,7 @@ class _FolderTreeItemState extends State<FolderTreeItem> with ContextMenuTapMixi
               SettingsService.episodePosterMode,
               SettingsService.hideSpoilers,
               SettingsService.showUnwatchedCount,
+              SettingsService.showWatchedTotalCount,
               SettingsService.showWatchedIndicators,
             ],
             builder: _buildMediaRow,

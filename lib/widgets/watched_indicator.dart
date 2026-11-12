@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:provider/provider.dart';
 
+import '../media/leaf_watch_count.dart';
 import '../media/media_item.dart';
 import '../media/media_item_types.dart';
 import '../media/media_kind.dart';
+import '../providers/show_watch_counts_provider.dart';
 import '../services/settings_service.dart';
 import '../theme/mono_tokens.dart';
 import 'app_icon.dart';
@@ -56,8 +59,9 @@ enum WatchedIndicatorSize {
 /// unwatched-count pill (shows/seasons), active-progress bar, and season
 /// completion bar. The single implementation behind every surface that
 /// stamps watch state onto a poster/thumbnail. Callers that must react to
-/// [SettingsService.showWatchedIndicators] or [SettingsService.showUnwatchedCount]
-/// flipping wrap themselves in a [SettingsBuilder] on those prefs.
+/// [SettingsService.showWatchedIndicators], [SettingsService.showUnwatchedCount]
+/// or [SettingsService.showWatchedTotalCount] flipping wrap themselves in a
+/// [SettingsBuilder] on those prefs.
 class WatchedIndicator extends StatelessWidget {
   final MediaItem item;
   final WatchedIndicatorSize size;
@@ -67,11 +71,16 @@ class WatchedIndicator extends StatelessWidget {
   /// visibility updates reactively with the caller's rebuilds.
   final bool? showUnwatchedCount;
 
+  /// Lets an episode card show its series' watched/total count (Continue
+  /// Watching and other hub cards). Season episode lists leave it off.
+  final bool showSeriesCount;
+
   const WatchedIndicator({
     super.key,
     required this.item,
     this.size = WatchedIndicatorSize.standard,
     this.showUnwatchedCount,
+    this.showSeriesCount = false,
   });
 
   @override
@@ -80,6 +89,8 @@ class WatchedIndicator extends StatelessWidget {
     final bool showWatched = SettingsService.instance.read(SettingsService.showWatchedIndicators);
     final hasActiveProgress = item.hasActiveProgress;
     final unwatched = item.unwatchedCount;
+    final showsCheckmark = showWatched && item.isWatched && !hasActiveProgress;
+    final watchedTotal = showCount && !showsCheckmark ? _watchedTotalCount(context) : null;
     final barRadius = BorderRadius.only(
       bottomLeft: Radius.circular(size.barRadius),
       bottomRight: Radius.circular(size.barRadius),
@@ -88,7 +99,7 @@ class WatchedIndicator extends StatelessWidget {
     return Stack(
       children: [
         // Watched checkmark
-        if (showWatched && item.isWatched && !hasActiveProgress)
+        if (showsCheckmark)
           Positioned(
             top: size.checkInset,
             right: size.checkInset,
@@ -102,8 +113,20 @@ class WatchedIndicator extends StatelessWidget {
               child: AppIcon(Symbols.check_rounded, fill: 1, color: tokens(context).bg, size: size.checkIconSize),
             ),
           ),
+        // Watched/total for shows/seasons and series counts on episode cards
+        if (watchedTotal != null)
+          Positioned(
+            top: size.checkInset,
+            right: size.checkInset,
+            child: UnwatchedCountBadge(
+              count: watchedTotal.total - watchedTotal.viewed,
+              label: '${watchedTotal.viewed}/${watchedTotal.total}',
+              size: size.badgeSize,
+              fontSize: size.badgeFontSize,
+            ),
+          )
         // Unwatched count for shows/seasons
-        if (showCount &&
+        else if (showCount &&
             !item.isWatched &&
             (item.kind == MediaKind.show || item.kind == MediaKind.season) &&
             unwatched != null &&
@@ -146,5 +169,20 @@ class WatchedIndicator extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  /// Counts for the watched/total pill, or null to fall back to the plain
+  /// unwatched count. A finished show keeps its checkmark instead.
+  LeafWatchCount? _watchedTotalCount(BuildContext context) {
+    if (!SettingsService.instance.read(SettingsService.showWatchedTotalCount)) return null;
+    final LeafWatchCount? count;
+    if (item.kind == MediaKind.show || item.kind == MediaKind.season) {
+      count = item.leafWatchCount;
+    } else if (showSeriesCount && item.kind == MediaKind.episode) {
+      count = context.select<ShowWatchCountsProvider?, LeafWatchCount?>((p) => p?.countFor(item));
+    } else {
+      return null;
+    }
+    return count != null && count.viewed < count.total ? count : null;
   }
 }

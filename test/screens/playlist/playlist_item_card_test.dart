@@ -93,7 +93,7 @@ void main() {
     }
   });
 
-  testWidgets('show and season containers render their remaining-count badge', (tester) async {
+  testWidgets('show and season containers render their watched/total badge', (tester) async {
     final store = WatchStateStore();
     addTearDown(store.dispose);
     final show = testMediaItem(
@@ -115,11 +115,11 @@ void main() {
 
     await _pumpCard(tester, store: store, item: show);
     expect(find.byType(UnwatchedCountBadge), findsOneWidget);
-    expect(find.text('7'), findsOneWidget);
+    expect(find.text('5/12'), findsOneWidget);
 
     await _pumpCard(tester, store: store, item: season);
     expect(find.byType(UnwatchedCountBadge), findsOneWidget);
-    expect(find.text('6'), findsOneWidget);
+    expect(find.text('2/8'), findsOneWidget);
   });
 
   testWidgets('watch-state patches update the overlay without mutating the source item', (tester) async {

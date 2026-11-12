@@ -169,6 +169,16 @@ class AppearanceSettingsScreen extends StatelessWidget {
               title: t.settings.showUnwatchedCount,
               subtitle: t.settings.showUnwatchedCountDescription,
             ),
+            SettingsBuilder(
+              prefs: const [SettingsService.showUnwatchedCount],
+              builder: (context) => SettingSwitchTile(
+                pref: SettingsService.showWatchedTotalCount,
+                icon: Symbols.counter_2_rounded,
+                title: t.settings.showWatchedTotalCount,
+                subtitle: t.settings.showWatchedTotalCountDescription,
+                enabled: SettingsService.instance.read(SettingsService.showUnwatchedCount),
+              ),
+            ),
           ],
         ),
 
