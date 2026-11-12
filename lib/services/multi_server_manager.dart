@@ -1306,8 +1306,26 @@ class MultiServerManager {
         server.networkClassForUrl(client.config.baseUrl) == PlexNetworkClass.relay;
   }
 
+  /// Whether [serverId]'s registered client is on a direct IPv6 endpoint
+  /// while the server publishes a direct IPv4 one of the same class
+  /// ([PlexServer.isIPv6WithIPv4Sibling]).
+  bool _isOnIPv6WithIPv4Sibling(ServerId serverId) {
+    final client = _clients[serverId];
+    final server = _plexServers[serverId];
+    return client is PlexClient && server != null && server.isIPv6WithIPv4Sibling(client.config.baseUrl);
+  }
+
+  /// Whether [serverId] sits on a fallback-tier endpoint the escape prober
+  /// should keep trying to leave: a relay, or an IPv6 endpoint with an IPv4
+  /// sibling. A failover after a device sleep walks a LAN session from IPv4
+  /// onto its IPv6 sibling; that one is still local, so nothing else ever
+  /// brings it back, and native stacks that cannot resolve the AAAA-only
+  /// plex.direct host (ExoPlayer, downloads) fail against it.
+  bool _isOnEscapableEndpoint(ServerId serverId) => _isOnRelay(serverId) || _isOnIPv6WithIPv4Sibling(serverId);
+
   /// Re-race endpoints for every online Plex server whose active endpoint is
-  /// remote or relay while the server also publishes a local connection.
+  /// remote or relay while the server also publishes a local connection, or
+  /// IPv6 while it publishes an IPv4 one of the same class.
   ///
   /// The failover cascade can walk a LAN session onto the remote endpoint
   /// (a dead pooled socket after a device sleep looks like a dead endpoint),
@@ -1324,11 +1342,16 @@ class MultiServerManager {
       if (client is! PlexClient || !isServerOnline(serverId)) continue;
       if (_activeOptimizations.containsKey(serverId)) continue;
       final activeClass = server.networkClassForUrl(client.config.baseUrl);
-      if (activeClass != PlexNetworkClass.remote && activeClass != PlexNetworkClass.relay) continue;
-      if (!server.connections.any((c) => c.local && !c.relay)) continue;
+      final offLan =
+          (activeClass == PlexNetworkClass.remote || activeClass == PlexNetworkClass.relay) &&
+          server.connections.any((c) => c.local && !c.relay);
+      final onIPv6 = !offLan && server.isIPv6WithIPv4Sibling(client.config.baseUrl);
+      if (!offLan && !onIPv6) continue;
 
       appLogger.i(
-        'Re-optimizing ${server.name}: on ${activeClass.name} endpoint while a local one is published',
+        offLan
+            ? 'Re-optimizing ${server.name}: on ${activeClass.name} endpoint while a local one is published'
+            : 'Re-optimizing ${server.name}: on IPv6 ${activeClass.name} endpoint while an IPv4 one is published',
         error: {'reason': reason},
       );
       futures.add(
@@ -1348,8 +1371,12 @@ class MultiServerManager {
   /// endpoint classifies as relay, re-race the candidates on a bounded
   /// backoff; the phase-2 selector prefers any working direct endpoint, so
   /// the first successful direct probe promotes away and stops the prober.
+  ///
+  /// An IPv6 endpoint with an IPv4 sibling gets the same treatment
+  /// ([_isOnEscapableEndpoint]): the selector ranks IPv4 first, so the first
+  /// re-race that finds it answering promotes away.
   void _syncRelayEscape(ServerId serverId) {
-    if (!_isOnRelay(serverId)) {
+    if (!_isOnEscapableEndpoint(serverId)) {
       _stopRelayEscape(serverId);
       return;
     }
@@ -1357,7 +1384,9 @@ class MultiServerManager {
     final attempt = _relayEscapeAttempts[serverId] ?? 0;
     final delay = _relayEscapeDelay(attempt);
     appLogger.i(
-      'Connected via relay, scheduling direct-endpoint re-probe',
+      _isOnRelay(serverId)
+          ? 'Connected via relay, scheduling direct-endpoint re-probe'
+          : 'Connected via IPv6 while an IPv4 endpoint is published, scheduling re-probe',
       error: {'serverId': serverId, 'attempt': attempt, 'delaySeconds': delay.inSeconds},
     );
     _relayEscapeTimers[serverId] = Timer(delay, () {
@@ -1391,7 +1420,7 @@ class MultiServerManager {
 
   Future<void> _runRelayEscape(ServerId serverId) async {
     final server = _plexServers[serverId];
-    if (server == null || !_isOnRelay(serverId) || !isServerOnline(serverId)) {
+    if (server == null || !_isOnEscapableEndpoint(serverId) || !isServerOnline(serverId)) {
       // Gone, promoted away, or offline (the reconnect path owns offline
       // servers and re-syncs on success).
       _stopRelayEscape(serverId);
@@ -1399,7 +1428,7 @@ class MultiServerManager {
     }
     _relayEscapeAttempts[serverId] = (_relayEscapeAttempts[serverId] ?? 0) + 1;
     await _runServerTask(serverId, () => _reoptimizeServer(serverId: serverId, server: server, reason: 'relay-escape'));
-    // Still on relay (or the optimize slot was busy): keep probing.
+    // Still on relay or IPv6 (or the optimize slot was busy): keep probing.
     _syncRelayEscape(serverId);
   }
 

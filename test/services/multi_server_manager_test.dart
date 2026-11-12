@@ -1334,6 +1334,69 @@ void main() {
       });
     });
 
+    test('an IPv6 session with an IPv4 sibling re-probes and promotes back to IPv4', () async {
+      final storage = await _prepareFreshPlexManagerTest();
+      final ipv4 = _plexEndpoint('v6escape-ipv4');
+      final ipv6 = _plexIPv6Endpoint('v6escape-ipv6');
+      final server = _ControlledPlexServer(
+        serverId: 'v6escape-server',
+        endpoints: [ipv4, ipv6],
+        discoveryStreams: [
+          () => Stream.value(ipv6), // bind: IPv4 missed its probe
+          () => Stream.value(ipv4), // escape probe: IPv4 answers
+        ],
+      );
+      final factory = _RecordingPlexFactory();
+      final manager = MultiServerManager(
+        plexClientFactory: factory.create,
+        connectivityChanges: () => const Stream.empty(),
+      );
+      addTearDown(manager.dispose);
+
+      expect(await manager.refreshTokensForProfile(_plexAccount('v6escape-account', [server]), profileId: 'p'), {
+        'v6escape-server',
+      });
+      await pumpEventQueue(times: 20);
+      final client = factory.clients['v6escape-server']!;
+      expect(client.config.baseUrl, ipv6.uri);
+      expect(manager.debugHasPendingRelayEscapeForTesting(ServerId('v6escape-server')), isTrue);
+
+      await manager.debugFireRelayEscapeForTesting(ServerId('v6escape-server'));
+      await pumpEventQueue(times: 20);
+
+      expect(server.discoveryCalls, 2);
+      expect(client.config.baseUrl, ipv4.uri);
+      expect(storage.getServerEndpoint(ServerId('v6escape-server')), ipv4.uri);
+      expect(manager.debugHasPendingRelayEscapeForTesting(ServerId('v6escape-server')), isFalse);
+    });
+
+    test('a local IPv6 session with only a remote IPv4 endpoint is left alone', () async {
+      await _prepareFreshPlexManagerTest();
+      final ipv6 = _plexIPv6Endpoint('v6only-ipv6');
+      final server = _ControlledPlexServer(
+        serverId: 'v6only-server',
+        endpoints: [ipv6, _plexRemoteEndpoint('v6only-wan')],
+        discoveryStreams: [() => Stream.value(ipv6)],
+      );
+      final factory = _RecordingPlexFactory();
+      final manager = MultiServerManager(
+        plexClientFactory: factory.create,
+        connectivityChanges: () => const Stream.empty(),
+      );
+      addTearDown(manager.dispose);
+
+      expect(await manager.refreshTokensForProfile(_plexAccount('v6only-account', [server]), profileId: 'p'), {
+        'v6only-server',
+      });
+      await pumpEventQueue(times: 20);
+
+      // The selector ranks local IPv6 above remote IPv4, so a re-race would
+      // land here again: no prober, and resume skips it.
+      expect(manager.debugHasPendingRelayEscapeForTesting(ServerId('v6only-server')), isFalse);
+      await manager.reoptimizeDemotedServers(reason: 'resume');
+      expect(server.discoveryCalls, 1);
+    });
+
     test('removing a relay-connected server cancels its escape prober', () async {
       await _prepareFreshPlexManagerTest();
       final relay = _plexRelayEndpoint('removed-relay');
@@ -1400,6 +1463,40 @@ void main() {
       // Back on local: a second resume is a no-op.
       await manager.reoptimizeDemotedServers(reason: 'resume');
       expect(server.discoveryCalls, 2);
+    });
+
+    test('re-races a server sitting on IPv6 while it publishes an IPv4 connection', () async {
+      final storage = await _prepareFreshPlexManagerTest();
+      final ipv4 = _plexEndpoint('v6demoted-ipv4');
+      final ipv6 = _plexIPv6Endpoint('v6demoted-ipv6');
+      final server = _ControlledPlexServer(
+        serverId: 'v6demoted-server',
+        endpoints: [ipv4, ipv6],
+        discoveryStreams: [
+          () => Stream.value(ipv6), // bind: IPv4 missed its probe
+          () => Stream.value(ipv4), // resume: IPv4 answers
+        ],
+      );
+      final factory = _RecordingPlexFactory();
+      final manager = MultiServerManager(
+        plexClientFactory: factory.create,
+        connectivityChanges: () => const Stream.empty(),
+      );
+      addTearDown(manager.dispose);
+
+      expect(await manager.refreshTokensForProfile(_plexAccount('v6demoted-account', [server]), profileId: 'p'), {
+        'v6demoted-server',
+      });
+      await pumpEventQueue(times: 20);
+      final client = factory.clients['v6demoted-server']!;
+      expect(client.config.baseUrl, ipv6.uri);
+
+      await manager.reoptimizeDemotedServers(reason: 'resume');
+      await pumpEventQueue(times: 20);
+
+      expect(server.discoveryCalls, 2);
+      expect(client.config.baseUrl, ipv4.uri);
+      expect(storage.getServerEndpoint(ServerId('v6demoted-server')), ipv4.uri);
     });
 
     test('leaves alone a server on local and a remote-only server', () async {
@@ -2192,6 +2289,17 @@ PlexConnection _plexRemoteEndpoint(String label) => PlexConnection(
   local: false,
   relay: false,
   ipv6: false,
+);
+
+/// A plex.tv-published direct IPv6 connection (`IPv6="1"`), local by default.
+PlexConnection _plexIPv6Endpoint(String label, {bool local = true}) => PlexConnection(
+  protocol: 'https',
+  address: '$label.invalid',
+  port: 32400,
+  uri: 'https://$label.invalid:32400',
+  local: local,
+  relay: false,
+  ipv6: true,
 );
 
 class _ControlledPlexServer extends PlexServer {

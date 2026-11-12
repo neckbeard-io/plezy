@@ -639,6 +639,19 @@ class PlexServer {
     return _candidateForUrl(url)?.connection.networkClass ?? _classifyCustomPreferredUrl(url);
   }
 
+  /// Whether [url] is a direct IPv6 endpoint while this server also publishes
+  /// a direct IPv4 connection in the same network class. The selector ranks
+  /// that IPv4 sibling first, so sitting on the IPv6 one means it failed once
+  /// (or a failover walked off a dead pooled socket onto IPv6), and native
+  /// stacks such as ExoPlayer's data source and Android downloads may not
+  /// resolve the AAAA-only host at all (see [PlexConnection.isIPv6]).
+  bool isIPv6WithIPv4Sibling(String url) {
+    final connection = _candidateForUrl(url)?.connection;
+    if (connection == null || connection.relay || !connection.isIPv6) return false;
+    final networkClass = connection.networkClass;
+    return connections.any((c) => !c.relay && !c.isIPv6 && c.networkClass == networkClass);
+  }
+
   bool _isUnpublishedPublicCleartextUrl(String url) {
     final uri = Uri.tryParse(url);
     if (uri == null || uri.scheme.toLowerCase() != 'http') return false;
