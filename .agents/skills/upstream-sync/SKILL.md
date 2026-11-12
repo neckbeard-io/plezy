@@ -41,6 +41,9 @@ There are **no per-feature branches**. Every local change lives as plain commits
 10. `per-server-visibility` (Hidden media servers preference & provider)
 11. `osd-air-date` (Air date / release year and active player in the OSD header)
 12. `watched-total-count` (Watched/total badge, including series counts on Continue Watching)
+13. `fresh-audio-track` (mpv video core opens a fresh AudioTrack per file: `gapless-audio=no`)
+14. `ipv6-endpoint-escape` (leave an IPv6 Plex endpoint once its IPv4 sibling answers again)
+15. `download-queue` (Android downloads keep going with the screen off, one live queue notification, run summary card; pins a `background_downloader` fork branch)
 
 Details for each feature (purpose, key files, what to check upstream, last known commit) live in [portfolio_catalog.md](./references/portfolio_catalog.md). `AGENTS.md` at the repo root holds a summary of the same catalog. The audit script's `FEATURES` map mirrors the catalog's key files; keep the three in sync when a feature is added or its files move.
 

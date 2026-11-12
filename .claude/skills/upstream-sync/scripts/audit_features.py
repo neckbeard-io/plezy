@@ -38,6 +38,13 @@ FEATURES = {
         "lib/widgets/watched_indicator.dart",
         "lib/media/leaf_watch_count.dart",
     ],
+    "fresh-audio-track": ["android/app/src/main/kotlin/com/edde746/plezy/mpv/MpvPlayerCore.kt"],
+    "ipv6-endpoint-escape": ["lib/services/multi_server_manager.dart", "lib/services/plex_auth_service.dart"],
+    "download-queue": [
+        "lib/media/download_queue_summary.dart",
+        "lib/providers/download_queue_tracker.dart",
+        "lib/widgets/download_queue_summary_card.dart",
+    ],
 }
 
 TOOLING_PREFIXES = (".agents/", ".claude/")
