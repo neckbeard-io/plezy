@@ -721,6 +721,7 @@ class DesktopVideoControlsState extends State<DesktopVideoControls> {
             child: VideoControlsHeader(
               metadata: widget.metadata,
               style: Platform.isMacOS ? VideoHeaderStyle.singleLine : VideoHeaderStyle.multiLine,
+              player: widget.player,
               onBack: widget.onBack,
               onCancelAutoHide: widget.onCancelAutoHide,
               onStartAutoHide: widget.onStartAutoHide,
