@@ -44,6 +44,7 @@ import '../providers/account_preferences_controller.dart';
 import '../providers/download_provider.dart';
 import '../providers/multi_server_provider.dart';
 import '../providers/hidden_libraries_provider.dart';
+import '../providers/hidden_servers_provider.dart';
 import '../providers/libraries_provider.dart';
 import '../providers/playback_state_provider.dart';
 import '../providers/seerr_account_provider.dart';
@@ -1743,6 +1744,7 @@ class _MainScreenState extends State<MainScreen>
 
     final multiServerProvider = context.read<MultiServerProvider>();
     final hiddenLibrariesProvider = context.read<HiddenLibrariesProvider>();
+    final hiddenServersProvider = context.read<HiddenServersProvider>();
     final librariesProvider = context.read<LibrariesProvider>();
     final playbackStateProvider = context.read<PlaybackStateProvider>();
 
@@ -1755,6 +1757,7 @@ class _MainScreenState extends State<MainScreen>
     }
 
     await hiddenLibrariesProvider.refresh();
+    await hiddenServersProvider.refresh();
     if (!mounted) return;
 
     librariesProvider.clear();

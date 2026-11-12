@@ -1148,6 +1148,21 @@ class Translations$settings$en {
 	/// en: 'Reorder and hide libraries'
 	String get manageLibrariesDescription => 'Reorder and hide libraries';
 
+	/// en: 'Media Servers'
+	String get mediaServers => 'Media Servers';
+
+	/// en: 'Choose which servers appear in browsing'
+	String get mediaServersDescription => 'Choose which servers appear in browsing';
+
+	/// en: 'No servers connected'
+	String get noMediaServers => 'No servers connected';
+
+	/// en: 'Owned'
+	String get ownedServer => 'Owned';
+
+	/// en: 'Shared with you'
+	String get sharedServer => 'Shared with you';
+
 	/// en: 'Companion Remote Server'
 	String get companionRemoteServer => 'Companion Remote Server';
 
@@ -8515,6 +8530,11 @@ extension on Translations {
 			'settings.services' => 'Services',
 			'settings.servicesDescription' => 'Connect Trakt, MyAnimeList, Seerr, and more',
 			'settings.manageLibrariesDescription' => 'Reorder and hide libraries',
+			'settings.mediaServers' => 'Media Servers',
+			'settings.mediaServersDescription' => 'Choose which servers appear in browsing',
+			'settings.noMediaServers' => 'No servers connected',
+			'settings.ownedServer' => 'Owned',
+			'settings.sharedServer' => 'Shared with you',
 			'settings.companionRemoteServer' => 'Companion Remote Server',
 			'settings.companionRemoteServerDescription' => 'Allow mobile devices on your network to control this app',
 			'settings.companionRemoteServerStartFailed' => 'Couldn\'t start the companion server',
@@ -8644,13 +8664,13 @@ extension on Translations {
 			'themeEditor.locked' => 'Unlock with the Theme & Icon Pack',
 			'themeEditor.savedLocked' => 'Saved — unlocks with the Theme & Icon Pack',
 			'themeEditor.title' => 'Custom Theme',
+			_ => null,
+		} ?? switch (path) {
 			'themeEditor.startFrom' => 'Start from',
 			'themeEditor.startFromDescription' => 'Copy all colors from another theme',
 			'themeEditor.colors' => 'Colors',
 			'themeEditor.preview' => 'Preview',
 			'themeEditor.slots.bg' => 'Background',
-			_ => null,
-		} ?? switch (path) {
 			'themeEditor.slots.surface' => 'Surface',
 			'themeEditor.slots.outline' => 'Outline',
 			'themeEditor.slots.text' => 'Text',
@@ -9158,13 +9178,13 @@ extension on Translations {
 			'profiles.borrowLoadFailed' => 'Available connections could not be loaded. Try again.',
 			'profiles.borrowFromProfile' => ({required Object displayName}) => 'From ${displayName}',
 			'profiles.borrowConnectionBorrowed' => 'Connection borrowed.',
+			_ => null,
+		} ?? switch (path) {
 			'profiles.borrowFailed' => 'Failed to borrow connection.',
 			'profiles.incorrectPin' => 'Incorrect PIN.',
 			'profiles.incorrectPinTryAgain' => 'Incorrect PIN. Please try again.',
 			'profiles.sourceProfileMissingParentAccount' => 'Source profile is missing its parent account.',
 			'profiles.failedToLoadHomeUsers' => 'Could not load your Plex Home users. Check your connection and try again.',
-			_ => null,
-		} ?? switch (path) {
 			'profiles.failedToVerifyPin' => 'Failed to verify PIN.',
 			'profiles.newProfile' => 'New profile',
 			'profiles.profileNameHint' => 'e.g. Guests, Kids, Family Room',
@@ -9672,13 +9692,13 @@ extension on Translations {
 			'liveTv.recordingTargetMissing' => 'Couldn\'t determine recording library',
 			'liveTv.recordNotAvailable' => 'Recording not available for this program',
 			'liveTv.recordingCancelled' => 'Recording canceled',
+			_ => null,
+		} ?? switch (path) {
 			'liveTv.recordingRuleDeleted' => 'Recording rule deleted',
 			'liveTv.processRecordingRules' => 'Re-evaluate rules',
 			'liveTv.recordingInProgress' => 'Recording now',
 			'liveTv.recordingsCount' => ({required Object count}) => '${count} scheduled',
 			'liveTv.editRule' => 'Edit rule',
-			_ => null,
-		} ?? switch (path) {
 			'liveTv.editRuleAction' => 'Edit',
 			'liveTv.recordingRuleUpdated' => 'Recording rule updated',
 			'liveTv.guideReloadRequested' => 'Guide refresh requested',
@@ -10186,13 +10206,13 @@ extension on Translations {
 			'performanceOverlay.avSync' => 'A/V Sync',
 			'performanceOverlay.dropped' => 'Dropped',
 			'performanceOverlay.dvRpus' => 'DV RPUs',
+			_ => null,
+		} ?? switch (path) {
 			'performanceOverlay.dvRpuAverage' => 'DV RPU Avg',
 			'performanceOverlay.dvSampleAverage' => 'DV Sample Avg',
 			'performanceOverlay.maxLuma' => 'Max Luma',
 			'performanceOverlay.minLuma' => 'Min Luma',
 			'performanceOverlay.maxCll' => 'MaxCLL',
-			_ => null,
-		} ?? switch (path) {
 			'performanceOverlay.maxFall' => 'MaxFALL',
 			'performanceOverlay.cacheUsed' => 'Cache Used',
 			'performanceOverlay.cacheLimit' => 'Cache Limit',
