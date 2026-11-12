@@ -27,6 +27,12 @@ extension _PlexVideoControlsMarkerMethods on _PlexVideoControlsState {
       }
     }
 
+    // After skipping, the throttled post-seek position can momentarily still
+    // land inside the marker we just left. Ignore it until the position moves
+    // out, so the button doesn't flash back with a fresh countdown.
+    if (foundMarker != null && foundMarker == _suppressedSkipMarker) return;
+    _suppressedSkipMarker = null;
+
     if (foundMarker != _currentMarker && mounted) {
       _updateCurrentMarker(foundMarker);
     }
@@ -74,6 +80,11 @@ extension _PlexVideoControlsMarkerMethods on _PlexVideoControlsState {
       _clearCurrentMarker();
       return;
     }
+
+    // Opt-in: each marker offers its button once per playback. Without this a
+    // marker re-entered by seeking backwards keeps re-prompting.
+    if (_suppressSkipReappearance && _shownMarkers.contains(foundMarker)) return;
+    _shownMarkers.add(foundMarker);
 
     _setControlsState(() {
       _currentMarker = foundMarker;
@@ -129,6 +140,8 @@ extension _PlexVideoControlsMarkerMethods on _PlexVideoControlsState {
     _setControlsState(() {
       _currentMarker = null;
     });
+    // Don't let the post-seek position re-show the marker we just skipped.
+    _suppressedSkipMarker = marker;
     // The play-next flow requests its own focus; claiming the surface here
     // would race it.
     if (!handsOffToCompletion) _releaseSkipMarkerFocusToSurface();
@@ -277,11 +290,16 @@ extension _PlexVideoControlsMarkerMethods on _PlexVideoControlsState {
               autoSkipProgress: autoSkipProgress,
               focusNode: _skipMarkerFocusNode,
               onActivate: _activateSkipMarker,
-              onFocusDown: () => _desktopControlsKey.currentState?.requestPlayPauseFocus(),
+              onFocusDown: () => _desktopControlsKey.currentState?.requestTimelineFocus(),
             );
           },
         );
       },
     );
+  }
+
+  /// Skip button opacity is focus-driven, so rebuild whenever its focus changes.
+  void _onSkipMarkerFocusChange() {
+    _setControlsState(() {});
   }
 }
